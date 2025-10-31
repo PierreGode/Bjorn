@@ -876,11 +876,32 @@ async function refreshDashboard() {
 }
 
 function updateDashboardStatus(data) {
-    // Update counters
-    updateElement('target-count', data.target_count || 0);
-    updateElement('port-count', data.port_count || 0);
-    updateElement('vuln-count', data.vulnerability_count || 0);
-    updateElement('cred-count', data.credential_count || 0);
+    // If the WebSocket data has zero counts, fetch from our dashboard API instead
+    if ((data.target_count || 0) === 0 && (data.port_count || 0) === 0 && 
+        (data.vulnerability_count || 0) === 0 && (data.credential_count || 0) === 0) {
+        
+        // Fetch proper dashboard stats
+        fetchAPI('/api/dashboard/stats')
+            .then(stats => {
+                updateElement('target-count', stats.target_count || 0);
+                updateElement('port-count', stats.port_count || 0);
+                updateElement('vuln-count', stats.vulnerability_count || 0);
+                updateElement('cred-count', stats.credential_count || 0);
+            })
+            .catch(() => {
+                // Fallback to WebSocket data if API fails
+                updateElement('target-count', data.target_count || 0);
+                updateElement('port-count', data.port_count || 0);
+                updateElement('vuln-count', data.vulnerability_count || 0);
+                updateElement('cred-count', data.credential_count || 0);
+            });
+    } else {
+        // Use WebSocket data if it has non-zero values
+        updateElement('target-count', data.target_count || 0);
+        updateElement('port-count', data.port_count || 0);
+        updateElement('vuln-count', data.vulnerability_count || 0);
+        updateElement('cred-count', data.credential_count || 0);
+    }
     
     // Update status - use the actual e-paper display text
     updateElement('bjorn-status', data.bjorn_status || 'IDLE');
