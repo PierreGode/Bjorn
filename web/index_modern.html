@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bjorn Cyberviking - Modern Dashboard</title>
+    <link rel="icon" href="/web/images/favicon.ico" type="image/x-icon">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    
+    <!-- Custom Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        bjorn: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(14, 165, 233, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(14, 165, 233, 0.8); }
+        }
+        .pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        
+        .glass {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: rgba(14, 165, 233, 0.5);
+            border-radius: 3px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: rgba(14, 165, 233, 0.8);
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white min-h-screen">
+    
+    <!-- Navigation -->
+    <nav class="glass sticky top-0 z-50 border-b border-slate-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <img src="/web/images/favicon.ico" alt="Bjorn" class="h-10 w-10">
+                    <span class="text-2xl font-bold bg-gradient-to-r from-bjorn-400 to-bjorn-600 bg-clip-text text-transparent">
+                        BJORN
+                    </span>
+                    <span id="connection-status" class="flex items-center space-x-2">
+                        <span class="w-2 h-2 bg-green-500 rounded-full pulse-glow"></span>
+                        <span class="text-xs text-gray-400">Connected</span>
+                    </span>
+                </div>
+                
+                <!-- Navigation Links -->
+                <div class="hidden md:flex space-x-1">
+                    <button onclick="showTab('dashboard')" class="nav-btn px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors" data-tab="dashboard">
+                        Dashboard
+                    </button>
+                    <button onclick="showTab('network')" class="nav-btn px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors" data-tab="network">
+                        Network
+                    </button>
+                    <button onclick="showTab('credentials')" class="nav-btn px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors" data-tab="credentials">
+                        Credentials
+                    </button>
+                    <button onclick="showTab('loot')" class="nav-btn px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors" data-tab="loot">
+                        Loot
+                    </button>
+                    <button onclick="showTab('config')" class="nav-btn px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors" data-tab="config">
+                        Config
+                    </button>
+                </div>
+                
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-btn" class="md:hidden p-2 rounded-lg hover:bg-slate-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden border-t border-slate-700">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <button onclick="showTab('dashboard')" class="block w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700">Dashboard</button>
+                <button onclick="showTab('network')" class="block w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700">Network</button>
+                <button onclick="showTab('credentials')" class="block w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700">Credentials</button>
+                <button onclick="showTab('loot')" class="block w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700">Loot</button>
+                <button onclick="showTab('config')" class="block w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700">Config</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Dashboard Tab -->
+        <div id="dashboard-tab" class="tab-content">
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <!-- Targets Card -->
+                <div class="glass rounded-xl p-6 hover:scale-105 transition-transform">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-400 text-sm">Targets</p>
+                            <p id="target-count" class="text-3xl font-bold text-bjorn-400">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-bjorn-500 bg-opacity-20 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-bjorn-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Ports Card -->
+                <div class="glass rounded-xl p-6 hover:scale-105 transition-transform">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-400 text-sm">Open Ports</p>
+                            <p id="port-count" class="text-3xl font-bold text-green-400">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-500 bg-opacity-20 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Vulnerabilities Card -->
+                <div class="glass rounded-xl p-6 hover:scale-105 transition-transform">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-400 text-sm">Vulnerabilities</p>
+                            <p id="vuln-count" class="text-3xl font-bold text-red-400">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-red-500 bg-opacity-20 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Credentials Card -->
+                <div class="glass rounded-xl p-6 hover:scale-105 transition-transform">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-400 text-sm">Credentials</p>
+                            <p id="cred-count" class="text-3xl font-bold text-yellow-400">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-yellow-500 bg-opacity-20 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Status Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- Current Status -->
+                <div class="glass rounded-xl p-6">
+                    <h2 class="text-xl font-bold mb-4 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-bjorn-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        Current Status
+                    </h2>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-slate-800 bg-opacity-50 rounded-lg">
+                            <span class="text-gray-400">Status</span>
+                            <span id="bjorn-status" class="text-bjorn-400 font-semibold">IDLE</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-slate-800 bg-opacity-50 rounded-lg">
+                            <span class="text-gray-400">Mode</span>
+                            <span id="bjorn-mode" class="text-green-400 font-semibold">Auto</span>
+                        </div>
+                        <div class="p-3 bg-slate-800 bg-opacity-50 rounded-lg">
+                            <p class="text-gray-400 text-sm mb-2">Bjorn Says:</p>
+                            <p id="bjorn-says" class="text-white font-mono text-sm">Hacking away...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Connection Status -->
+                <div class="glass rounded-xl p-6">
+                    <h2 class="text-xl font-bold mb-4 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-bjorn-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
+                        </svg>
+                        Connectivity
+                    </h2>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="p-3 bg-slate-800 bg-opacity-50 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-400 text-sm">WiFi</span>
+                                <span id="wifi-status" class="w-3 h-3 bg-gray-600 rounded-full"></span>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-slate-800 bg-opacity-50 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-400 text-sm">Bluetooth</span>
+                                <span id="bluetooth-status" class="w-3 h-3 bg-gray-600 rounded-full"></span>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-slate-800 bg-opacity-50 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-400 text-sm">USB</span>
+                                <span id="usb-status" class="w-3 h-3 bg-gray-600 rounded-full"></span>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-slate-800 bg-opacity-50 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-400 text-sm">PAN</span>
+                                <span id="pan-status" class="w-3 h-3 bg-gray-600 rounded-full"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Console Log -->
+            <div class="glass rounded-xl p-6">
+                <h2 class="text-xl font-bold mb-4 flex items-center justify-between">
+                    <span class="flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-bjorn-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Console
+                    </span>
+                    <button onclick="clearConsole()" class="text-sm text-gray-400 hover:text-white transition-colors">Clear</button>
+                </h2>
+                <div id="console-output" class="bg-black bg-opacity-50 rounded-lg p-4 h-64 overflow-y-auto font-mono text-sm scrollbar-thin">
+                    <div class="text-green-400">Bjorn console initialized...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Network Tab -->
+        <div id="network-tab" class="tab-content hidden">
+            <div class="glass rounded-xl p-6">
+                <h2 class="text-2xl font-bold mb-6">Network Scan Results</h2>
+                <div id="network-table" class="overflow-x-auto">
+                    <p class="text-gray-400">Loading network data...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Credentials Tab -->
+        <div id="credentials-tab" class="tab-content hidden">
+            <div class="glass rounded-xl p-6">
+                <h2 class="text-2xl font-bold mb-6">Discovered Credentials</h2>
+                <div id="credentials-table" class="overflow-x-auto">
+                    <p class="text-gray-400">Loading credentials...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loot Tab -->
+        <div id="loot-tab" class="tab-content hidden">
+            <div class="glass rounded-xl p-6">
+                <h2 class="text-2xl font-bold mb-6">Stolen Data</h2>
+                <div id="loot-table" class="overflow-x-auto">
+                    <p class="text-gray-400">Loading loot data...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Config Tab -->
+        <div id="config-tab" class="tab-content hidden">
+            <div class="glass rounded-xl p-6">
+                <h2 class="text-2xl font-bold mb-6">Configuration</h2>
+                <div id="config-form">
+                    <p class="text-gray-400">Loading configuration...</p>
+                </div>
+            </div>
+        </div>
+        
+    </main>
+
+    <!-- JavaScript -->
+    <script src="/web/scripts/bjorn_modern.js"></script>
+    
+</body>
+</html>

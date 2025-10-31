@@ -414,6 +414,9 @@ setup_bjorn() {
         "pysmb>=1.2.0"
         "pymysql>=1.0.0"
         "python-nmap>=0.7.0"
+        "flask>=3.0.0"
+        "flask-socketio>=5.3.0"
+        "flask-cors>=4.0.0"
     )
     
     # Install each package individually with retries

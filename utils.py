@@ -811,5 +811,93 @@ method=auto
             handler.end_headers()
             handler.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode('utf-8'))
 
+    def get_all_credentials(self):
+        """Get all discovered credentials from various services"""
+        credentials = {}
+        
+        # Define credential files
+        cred_files = {
+            'ssh': self.shared_data.sshfile,
+            'smb': self.shared_data.smbfile,
+            'telnet': self.shared_data.telnetfile,
+            'ftp': self.shared_data.ftpfile,
+            'sql': self.shared_data.sqlfile,
+            'rdp': self.shared_data.rdpfile
+        }
+        
+        for service, filepath in cred_files.items():
+            try:
+                if os.path.exists(filepath):
+                    creds = []
+                    with open(filepath, 'r') as f:
+                        reader = csv.DictReader(f)
+                        for row in reader:
+                            creds.append({
+                                'ip': row.get('IP Address', ''),
+                                'username': row.get('Username', ''),
+                                'password': row.get('Password', '')
+                            })
+                    credentials[service] = creds
+                else:
+                    credentials[service] = []
+            except Exception as e:
+                self.logger.error(f"Error reading {service} credentials: {e}")
+                credentials[service] = []
+        
+        return credentials
+    
+    def get_loot_data(self):
+        """Get stolen/loot data files"""
+        loot = []
+        
+        try:
+            if os.path.exists(self.shared_data.datastolendir):
+                for root, dirs, files in os.walk(self.shared_data.datastolendir):
+                    for file in files:
+                        filepath = os.path.join(root, file)
+                        try:
+                            stat = os.stat(filepath)
+                            loot.append({
+                                'filename': file,
+                                'size': self._format_bytes(stat.st_size),
+                                'source': os.path.basename(root),
+                                'timestamp': self._format_timestamp(stat.st_mtime)
+                            })
+                        except Exception as e:
+                            self.logger.error(f"Error reading file {file}: {e}")
+        except Exception as e:
+            self.logger.error(f"Error reading loot directory: {e}")
+        
+        return loot
+    
+    def get_vulnerability_data(self):
+        """Get vulnerability scan results"""
+        vulnerabilities = []
+        
+        try:
+            import pandas as pd
+            if os.path.exists(self.shared_data.vuln_summary_file):
+                df = pd.read_csv(self.shared_data.vuln_summary_file)
+                vulnerabilities = df.to_dict('records')
+        except Exception as e:
+            self.logger.error(f"Error reading vulnerability data: {e}")
+        
+        return vulnerabilities
+    
+    @staticmethod
+    def _format_bytes(bytes_value):
+        """Format bytes to human readable format"""
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if bytes_value < 1024.0:
+                return f"{bytes_value:.1f} {unit}"
+            bytes_value /= 1024.0
+        return f"{bytes_value:.1f} TB"
+    
+    @staticmethod
+    def _format_timestamp(timestamp):
+        """Format timestamp to readable string"""
+        return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+
+
 
 
