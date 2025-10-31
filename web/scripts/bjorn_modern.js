@@ -764,6 +764,15 @@ async function postAPI(endpoint, data) {
 // DASHBOARD UPDATES
 // ============================================================================
 
+async function refreshDashboard() {
+    try {
+        const data = await fetchAPI('/api/status');
+        updateDashboardStatus(data);
+    } catch (error) {
+        console.error('Error refreshing dashboard:', error);
+    }
+}
+
 function updateDashboardStatus(data) {
     // Update counters
     updateElement('target-count', data.target_count || 0);
@@ -1140,9 +1149,14 @@ async function saveConfig(form) {
     const formData = new FormData(form);
     const config = {};
     
-    // Get all form values
+    // First, get all checkboxes and set them to false by default
+    const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        config[checkbox.name] = false;
+    });
+    
+    // Then get all form values, including checked checkboxes
     for (const [key, value] of formData.entries()) {
-        // Convert checkbox values to boolean
         const input = form.elements[key];
         if (input.type === 'checkbox') {
             config[key] = input.checked;
@@ -1153,10 +1167,26 @@ async function saveConfig(form) {
         }
     }
     
+    // Handle unchecked checkboxes explicitly
+    checkboxes.forEach(checkbox => {
+        config[checkbox.name] = checkbox.checked;
+    });
+    
+    console.log('Saving config:', config); // Debug logging
+    
     try {
         const result = await postAPI('/api/config', config);
         addConsoleMessage('Configuration saved successfully', 'success');
+        
+        // If manual_mode was changed, refresh the dashboard to update UI
+        if (config.hasOwnProperty('manual_mode')) {
+            setTimeout(() => {
+                refreshDashboard();
+            }, 500);
+        }
+        
     } catch (error) {
+        console.error('Config save error:', error);
         addConsoleMessage('Failed to save configuration', 'error');
     }
 }
@@ -1282,3 +1312,4 @@ window.startOrchestrator = startOrchestrator;
 window.stopOrchestrator = stopOrchestrator;
 window.triggerNetworkScan = triggerNetworkScan;
 window.triggerVulnScan = triggerVulnScan;
+window.refreshDashboard = refreshDashboard;
