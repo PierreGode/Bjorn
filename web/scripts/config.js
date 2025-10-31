@@ -194,6 +194,97 @@ function generateConfigForm(config) {
             .catch(error => alert('Error: ' + error));
         }
     }
+
+    function startAPMode() {
+        // Confirm the action since it will disconnect current Wi-Fi
+        if (confirm('Start AP Mode?\n\nThis will:\n• Disconnect from current Wi-Fi\n• Start "Bjorn" access point\n• Enable 3-minute smart cycling\n• Allow Wi-Fi configuration via AP\n\nContinue?')) {
+            // Show a loading message
+            showWifiStatus('Starting AP Mode...', 'connecting');
+            
+            const button = event.target.closest('button');
+            const img = button.querySelector('img');
+            
+            // Temporarily change button appearance
+            img.style.opacity = '0.5';
+            button.title = 'Starting AP Mode...';
+            
+            fetch('/api/wifi/ap/enable', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showWifiStatus(
+                        `AP Mode Active: "${data.ap_config.ssid}" | ${data.ap_config.timeout}s timeout | Smart cycling enabled`,
+                        'ap-mode'
+                    );
+                    
+                    // Auto-hide the success message after 10 seconds
+                    setTimeout(() => {
+                        hideWifiStatus();
+                    }, 10000);
+                } else {
+                    showWifiStatus('Failed to start AP Mode: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error starting AP mode:', error);
+                showWifiStatus('Error starting AP Mode: ' + error, 'error');
+            })
+            .finally(() => {
+                // Restore button appearance
+                img.style.opacity = '1';
+                button.title = 'Start AP Mode';
+            });
+        }
+    }
+
+    function showWifiStatus(message, type = '') {
+        const statusBar = document.getElementById('wifi-status');
+        const statusText = document.getElementById('wifi-status-text');
+        
+        statusText.textContent = message;
+        statusBar.className = 'wifi-status-bar ' + type;
+        statusBar.style.display = 'flex';
+    }
+
+    function hideWifiStatus() {
+        const statusBar = document.getElementById('wifi-status');
+        statusBar.style.display = 'none';
+    }
+
+    // Check Wi-Fi status on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        checkWifiStatus();
+    });
+
+    function checkWifiStatus() {
+        fetch('/api/wifi/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.ap_mode_active) {
+                    showWifiStatus(
+                        `AP Mode Active: "${data.ap_ssid || 'Bjorn'}" | Connect to configure Wi-Fi`,
+                        'ap-mode'
+                    );
+                } else if (data.wifi_connected) {
+                    showWifiStatus(
+                        `Connected to: ${data.current_ssid || 'Wi-Fi Network'}`,
+                        ''
+                    );
+                    // Auto-hide connected status after 5 seconds
+                    setTimeout(() => {
+                        hideWifiStatus();
+                    }, 5000);
+                }
+            })
+            .catch(error => {
+                console.log('Wi-Fi status check failed:', error);
+            });
+    }
     
     
         

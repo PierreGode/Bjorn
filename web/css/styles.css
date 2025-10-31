@@ -593,4 +593,59 @@ body, html {
     image-rendering: crisp-edges; /* Make the e-paper display crisp */
 }
 
+/* Wi-Fi Status Bar */
+.wifi-status-bar {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    padding: 10px 15px;
+    margin: 10px 0;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    animation: slideDown 0.3s ease-out;
+}
 
+.wifi-status-bar.ap-mode {
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+}
+
+.wifi-status-bar.error {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+}
+
+.wifi-status-bar.connecting {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+}
+
+#wifi-status-text {
+    font-weight: bold;
+    flex-grow: 1;
+}
+
+#wifi-status-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 5px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+#wifi-status-close:hover {
+    background-color: rgba(255,255,255,0.2);
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

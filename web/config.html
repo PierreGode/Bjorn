@@ -47,11 +47,18 @@
         <button type="button" class="toolbar-button" onclick="toggleWifiPanel()">
             <img src="/web/images/wifi.png" alt="wifi" style="height: 50px;"> 
         </button>
+        <button type="button" class="toolbar-button" onclick="startAPMode()" title="Start AP Mode">
+            <img src="/web/images/connected.png" alt="Start AP" style="height: 50px;">
+        </button>
         <button type="button" class="toolbar-button" onclick="adjustConfigFontSize(1)" title="+">
             <img src="/web/images/plus.png" alt="Icon_plus" style="height: 50px;">
         </button>
     </div>
     <div class="config-container">
+        <div id="wifi-status" class="wifi-status-bar" style="display: none;">
+            <span id="wifi-status-text">Wi-Fi Status Loading...</span>
+            <button id="wifi-status-close" onclick="hideWifiStatus()">✖</button>
+        </div>
         <form class="config-form"></form>
     </div>
     <div id="wifi-panel" class="wifi-panel">
