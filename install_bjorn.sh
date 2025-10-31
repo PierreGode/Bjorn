@@ -341,22 +341,33 @@ setup_bjorn() {
     
     # Install numpy and pandas - prefer system packages but fallback to pip
     log "INFO" "Installing numpy and pandas..."
-    pip3 install --break-system-packages "numpy>=1.24.0" "pandas>=2.0.0" || {
+    pip3 install --break-system-packages --retries 5 --timeout 300 "numpy>=1.24.0" "pandas>=2.0.0" || {
         log "WARNING" "Pandas/numpy pip install failed, relying on system packages"
     }
     
-    # Install remaining packages from requirements.txt
-    log "INFO" "Installing remaining Python packages..."
-    pip3 install --break-system-packages \
-        "rich>=13.0.0" \
-        "netifaces==0.11.0" \
-        "ping3>=4.0.0" \
-        "get-mac>=0.9.0" \
-        "paramiko>=3.0.0" \
-        "smbprotocol>=1.10.0" \
-        "pysmb>=1.2.0" \
-        "pymysql>=1.0.0" \
+    # Install remaining packages from requirements.txt with retry logic
+    log "INFO" "Installing remaining Python packages (with network retries)..."
+    
+    # Array of packages to install
+    declare -a packages=(
+        "rich>=13.0.0"
+        "netifaces==0.11.0"
+        "ping3>=4.0.0"
+        "get-mac>=0.9.0"
+        "paramiko>=3.0.0"
+        "smbprotocol>=1.10.0"
+        "pysmb>=1.2.0"
+        "pymysql>=1.0.0"
         "python-nmap>=0.7.0"
+    )
+    
+    # Install each package individually with retries
+    for package in "${packages[@]}"; do
+        log "INFO" "Installing $package..."
+        pip3 install --break-system-packages --retries 5 --timeout 300 "$package" || {
+            log "WARNING" "Failed to install $package after retries. Continuing..."
+        }
+    done
     
     check_success "Installed Python requirements"
 
