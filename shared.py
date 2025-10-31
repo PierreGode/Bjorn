@@ -167,13 +167,18 @@ class SharedData:
             
             "__title_wifi__": "Wi-Fi Management",
             "wifi_known_networks": [],
-            "wifi_ap_ssid": "Bjorn-Setup",
-            "wifi_ap_password": "bjornpassword",
+            "wifi_ap_ssid": "Bjorn",
+            "wifi_ap_password": "bjornconnect",
             "wifi_connection_timeout": 60,
             "wifi_max_attempts": 3,
             "wifi_scan_interval": 300,
             "wifi_monitor_enabled": True,
             "wifi_auto_ap_fallback": True,
+            "wifi_ap_timeout": 180,
+            "wifi_ap_idle_timeout": 180,
+            "wifi_reconnect_interval": 20,
+            "wifi_ap_cycle_enabled": True,
+            "wifi_initial_connection_timeout": 60,
         }
 
     def update_mac_blacklist(self):

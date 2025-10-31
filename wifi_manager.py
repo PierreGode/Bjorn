@@ -36,8 +36,19 @@ class WiFiManager:
         self.connection_attempts = 0
         self.last_connection_attempt = None
         self.connection_check_interval = 30  # seconds
-        self.connection_timeout = 60  # Wait 60 seconds before starting AP
+        self.connection_timeout = shared_data.config.get('wifi_initial_connection_timeout', 60)
         self.max_connection_attempts = 3
+        
+        # Smart AP mode management
+        self.ap_mode_start_time = None
+        self.ap_timeout = shared_data.config.get('wifi_ap_timeout', 180)  # 3 minutes
+        self.ap_idle_timeout = shared_data.config.get('wifi_ap_idle_timeout', 180)  # 3 minutes
+        self.reconnect_interval = shared_data.config.get('wifi_reconnect_interval', 20)  # 20 seconds
+        self.ap_cycle_enabled = shared_data.config.get('wifi_ap_cycle_enabled', True)
+        self.last_ap_stop_time = None
+        self.ap_clients_connected = False
+        self.ap_clients_count = 0
+        self.cycling_mode = False  # Track if we're in AP/reconnect cycle
         
         # Network management
         self.known_networks = []
@@ -45,8 +56,8 @@ class WiFiManager:
         self.current_ssid = None
         
         # AP mode settings
-        self.ap_ssid = "Bjorn-Setup"
-        self.ap_password = "bjornpassword"
+        self.ap_ssid = shared_data.config.get('wifi_ap_ssid', 'Bjorn-Setup')
+        self.ap_password = shared_data.config.get('wifi_ap_password', 'bjornpassword')
         self.ap_interface = "wlan0"
         self.ap_ip = "192.168.4.1"
         self.ap_subnet = "192.168.4.0/24"
@@ -294,14 +305,20 @@ class WiFiManager:
         
         # If no connection established, decide whether to start AP mode
         if not connected and not self.should_exit:
+            self.last_connection_attempt = time.time()  # Track when we last tried
+            
             # For service restarts, only start AP mode if we weren't previously connected
             should_start_ap = is_fresh_boot
             if previous_state and not previous_state.get('connected'):
                 should_start_ap = True
             
             if should_start_ap and self.shared_data.config.get('wifi_auto_ap_fallback', True):
-                self.logger.info("No Wi-Fi connection established, starting AP mode...")
-                self.start_ap_mode()
+                if self.ap_cycle_enabled:
+                    self.logger.info("No Wi-Fi connection established, starting AP cycling mode...")
+                    self.start_ap_mode_with_timeout()
+                else:
+                    self.logger.info("No Wi-Fi connection established, starting AP mode...")
+                    self.start_ap_mode()
             else:
                 self.logger.info("Skipping AP mode - will retry connection in monitoring loop")
                 self._save_connection_state(None, False)  # Save disconnected state
@@ -347,7 +364,7 @@ class WiFiManager:
             return True  # Default to fresh boot for safety
     
     def _monitoring_loop(self):
-        """Background monitoring loop for Wi-Fi status"""
+        """Background monitoring loop for Wi-Fi status with smart AP cycling"""
         last_state_save = 0
         
         while not self.should_exit:
@@ -369,6 +386,44 @@ class WiFiManager:
                     if self.ap_mode_active:
                         self.logger.info("Stopping AP mode due to successful connection")
                         self.stop_ap_mode()
+                        self.cycling_mode = False
+                
+                # Smart AP mode management
+                if self.ap_mode_active:
+                    # Check AP clients
+                    self.check_ap_clients()
+                    
+                    # Check if AP should be stopped due to inactivity or timeout
+                    if self.should_stop_idle_ap() and self.ap_cycle_enabled:
+                        self.logger.info("Stopping AP mode - switching to reconnection attempt")
+                        self.stop_ap_mode()
+                        self.last_ap_stop_time = time.time()
+                        
+                        # Try to connect to autoconnect networks
+                        if not self.try_autoconnect_networks():
+                            self.logger.info("No autoconnect networks available, will retry in cycle")
+                
+                # Handle reconnection attempts when in cycling mode
+                if (self.cycling_mode and not self.ap_mode_active and not self.wifi_connected 
+                    and self.last_ap_stop_time):
+                    
+                    time_since_ap_stop = time.time() - self.last_ap_stop_time
+                    
+                    if time_since_ap_stop >= self.reconnect_interval:
+                        self.logger.info("Reconnection timeout reached - restarting AP mode")
+                        self.start_ap_mode_with_timeout()
+                
+                # Handle initial connection timeout (for startup)
+                if (not self.cycling_mode and not self.wifi_connected and not self.ap_mode_active 
+                    and self.startup_complete):
+                    
+                    # Check if we should start cycling mode
+                    if (self.last_connection_attempt and 
+                        time.time() - self.last_connection_attempt > self.connection_timeout):
+                        
+                        if self.shared_data.config.get('wifi_auto_ap_fallback', True):
+                            self.logger.info("Connection timeout reached - starting AP cycling mode")
+                            self.start_ap_mode_with_timeout()
                 
                 # Update current SSID if connected
                 if self.wifi_connected:
@@ -392,13 +447,26 @@ class WiFiManager:
         if not self.startup_complete:
             return  # Don't interfere with startup sequence
         
-        # Try to reconnect to known networks
-        self.logger.info("Attempting to reconnect...")
-        if not self.try_connect_known_networks():
-            # If can't reconnect and AP mode isn't active, start it
-            if not self.ap_mode_active:
-                self.logger.info("Starting AP mode due to connection loss")
-                self.start_ap_mode()
+        self.last_connection_attempt = time.time()
+        
+        # Try to reconnect to known networks first
+        self.logger.info("Attempting to reconnect to known networks...")
+        if self.try_connect_known_networks():
+            return  # Successfully reconnected
+        
+        # Try autoconnect networks
+        self.logger.info("Attempting to connect to autoconnect networks...")
+        if self.try_autoconnect_networks():
+            return  # Successfully connected
+        
+        # If cycling is enabled and no AP is active, start cycling mode
+        if self.ap_cycle_enabled and not self.ap_mode_active:
+            self.logger.info("Starting AP cycling mode due to connection loss")
+            self.start_ap_mode_with_timeout()
+        elif not self.ap_mode_active and self.shared_data.config.get('wifi_auto_ap_fallback', True):
+            # Fallback to regular AP mode
+            self.logger.info("Starting AP mode due to connection loss")
+            self.start_ap_mode()
     
     def check_wifi_connection(self):
         """Check if Wi-Fi is connected using multiple methods"""
@@ -569,6 +637,34 @@ class WiFiManager:
         except Exception as e:
             self.logger.error(f"Error connecting to {ssid}: {e}")
             return False
+
+    def disconnect_wifi(self):
+        """Disconnect from current Wi-Fi network"""
+        try:
+            if not self.wifi_connected:
+                self.logger.info("Not connected to any Wi-Fi network")
+                return True
+            
+            current_ssid = self.get_current_ssid()
+            self.logger.info(f"Disconnecting from Wi-Fi network: {current_ssid}")
+            
+            # Disconnect using nmcli
+            result = subprocess.run(['nmcli', 'device', 'disconnect', 'wlan0'], 
+                                  capture_output=True, text=True, timeout=10)
+            
+            if result.returncode == 0:
+                self.wifi_connected = False
+                self.current_ssid = None
+                self.shared_data.wifi_connected = False
+                self.logger.info("Successfully disconnected from Wi-Fi")
+                return True
+            else:
+                self.logger.error(f"Error disconnecting: {result.stderr}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error disconnecting from Wi-Fi: {e}")
+            return False
     
     def add_known_network(self, ssid, password=None, priority=1):
         """Add a network to the known networks list"""
@@ -619,6 +715,148 @@ class WiFiManager:
         except Exception as e:
             self.logger.error(f"Error removing known network {ssid}: {e}")
             return False
+
+    def check_ap_clients(self):
+        """Check how many clients are connected to the AP"""
+        if not self.ap_mode_active:
+            return 0
+        
+        try:
+            # Method 1: Check hostapd_cli if available
+            result = subprocess.run(['hostapd_cli', '-i', self.ap_interface, 'list_sta'], 
+                                  capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                clients = [line.strip() for line in result.stdout.strip().split('\n') if line.strip()]
+                client_count = len(clients)
+                self.ap_clients_count = client_count
+                self.ap_clients_connected = client_count > 0
+                return client_count
+            
+            # Method 2: Check DHCP leases
+            dhcp_leases_file = '/var/lib/dhcp/dhcpd.leases'
+            if os.path.exists(dhcp_leases_file):
+                with open(dhcp_leases_file, 'r') as f:
+                    content = f.read()
+                    # Count active leases (simplified check)
+                    active_leases = content.count('binding state active')
+                    self.ap_clients_count = active_leases
+                    self.ap_clients_connected = active_leases > 0
+                    return active_leases
+            
+            # Method 3: Check ARP table for AP subnet
+            result = subprocess.run(['arp', '-a'], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                # Count IPs in AP subnet (192.168.4.x)
+                ap_clients = [line for line in result.stdout.split('\n') if '192.168.4.' in line]
+                client_count = len(ap_clients)
+                self.ap_clients_count = client_count
+                self.ap_clients_connected = client_count > 0
+                return client_count
+            
+            return 0
+            
+        except Exception as e:
+            self.logger.warning(f"Error checking AP clients: {e}")
+            return 0
+
+    def should_stop_idle_ap(self):
+        """Check if AP should be stopped due to inactivity"""
+        if not self.ap_mode_active or not self.ap_mode_start_time:
+            return False
+        
+        # Check if AP has been running for more than the idle timeout
+        ap_running_time = time.time() - self.ap_mode_start_time
+        
+        # If no clients have connected and idle timeout reached
+        if not self.ap_clients_connected and ap_running_time > self.ap_idle_timeout:
+            self.logger.info(f"AP idle timeout reached ({self.ap_idle_timeout}s) with no clients")
+            return True
+        
+        # If AP has been running for maximum timeout regardless of clients
+        if ap_running_time > self.ap_timeout * 2:  # Extended timeout for safety
+            self.logger.info(f"AP maximum timeout reached ({self.ap_timeout * 2}s)")
+            return True
+        
+        return False
+
+    def get_autoconnect_networks(self):
+        """Get networks that are set to autoconnect in NetworkManager"""
+        try:
+            result = subprocess.run(['nmcli', '-t', '-f', 'NAME,TYPE,AUTOCONNECT', 'connection', 'show'], 
+                                  capture_output=True, text=True, timeout=10)
+            if result.returncode == 0:
+                autoconnect_networks = []
+                for line in result.stdout.strip().split('\n'):
+                    if line and '802-11-wireless' in line and 'yes' in line:
+                        parts = line.split(':')
+                        if len(parts) >= 3:
+                            network_name = parts[0]
+                            autoconnect_networks.append(network_name)
+                
+                self.logger.info(f"Found {len(autoconnect_networks)} autoconnect networks: {autoconnect_networks}")
+                return autoconnect_networks
+            
+            return []
+            
+        except Exception as e:
+            self.logger.warning(f"Error getting autoconnect networks: {e}")
+            return []
+
+    def try_autoconnect_networks(self):
+        """Try to connect to any available autoconnect networks"""
+        autoconnect_networks = self.get_autoconnect_networks()
+        
+        if not autoconnect_networks:
+            self.logger.info("No autoconnect networks available")
+            return False
+        
+        # Scan for available networks
+        available_networks = self.scan_networks()
+        available_ssids = [net['ssid'] for net in available_networks]
+        
+        # Try to connect to any autoconnect network that's available
+        for network in autoconnect_networks:
+            if network in available_ssids:
+                self.logger.info(f"Attempting to connect to autoconnect network: {network}")
+                try:
+                    # Use nmcli to bring up the connection
+                    result = subprocess.run(['nmcli', 'connection', 'up', network], 
+                                          capture_output=True, text=True, timeout=30)
+                    if result.returncode == 0:
+                        # Wait a moment and check connection
+                        time.sleep(5)
+                        if self.check_wifi_connection():
+                            self.logger.info(f"Successfully connected to autoconnect network: {network}")
+                            return True
+                    else:
+                        self.logger.warning(f"Failed to connect to {network}: {result.stderr}")
+                except Exception as e:
+                    self.logger.warning(f"Error connecting to {network}: {e}")
+        
+        return False
+
+    def start_ap_mode_with_timeout(self):
+        """Start AP mode with smart timeout management"""
+        if self.start_ap_mode():
+            self.ap_mode_start_time = time.time()
+            self.cycling_mode = True
+            self.logger.info(f"AP mode started with {self.ap_timeout}s timeout")
+            return True
+        return False
+
+    def enable_ap_mode_from_web(self):
+        """Enable AP mode from web interface - starts the cycling behavior"""
+        self.logger.info("AP mode requested from web interface")
+        if self.wifi_connected:
+            # If connected, disconnect first
+            self.disconnect_wifi()
+        
+        # Stop current AP if running
+        if self.ap_mode_active:
+            self.stop_ap_mode()
+        
+        # Start AP with cycling enabled
+        return self.start_ap_mode_with_timeout()
     
     def start_ap_mode(self):
         """Start Access Point mode"""
@@ -644,6 +882,7 @@ class WiFiManager:
             # Start services
             if self._start_ap_services():
                 self.ap_mode_active = True
+                self.ap_mode_start_time = time.time()  # Track start time
                 self.logger.info("AP mode started successfully")
                 return True
             else:
@@ -670,6 +909,9 @@ class WiFiManager:
             self._cleanup_ap_interface()
             
             self.ap_mode_active = False
+            self.ap_mode_start_time = None
+            self.ap_clients_connected = False
+            self.ap_clients_count = 0
             self.logger.info("AP mode stopped")
             return True
             

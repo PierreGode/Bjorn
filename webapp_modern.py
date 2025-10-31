@@ -614,6 +614,33 @@ def forget_wifi_network():
         logger.error(f"Error forgetting Wi-Fi network: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/wifi/ap/enable', methods=['POST'])
+def enable_wifi_ap_mode():
+    """Enable Wi-Fi Access Point mode with smart cycling"""
+    try:
+        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        if not wifi_manager or not hasattr(wifi_manager, 'wifi_manager'):
+            return jsonify({'error': 'Wi-Fi manager not available'}), 503
+        
+        # Use the smart AP mode with cycling
+        success = wifi_manager.wifi_manager.enable_ap_mode_from_web()
+        
+        ap_config = {
+            'ssid': wifi_manager.wifi_manager.ap_ssid,
+            'timeout': wifi_manager.wifi_manager.ap_timeout,
+            'cycling': wifi_manager.wifi_manager.ap_cycle_enabled
+        }
+        
+        return jsonify({
+            'success': success,
+            'message': 'Smart AP mode enabled with 3-minute cycling' if success else 'Failed to enable AP mode',
+            'ap_config': ap_config
+        })
+        
+    except Exception as e:
+        logger.error(f"Error enabling Wi-Fi AP mode: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/wifi/ap/start', methods=['POST'])
 def start_wifi_ap():
     """Start Wi-Fi Access Point mode"""
