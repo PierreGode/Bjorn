@@ -261,6 +261,86 @@
                 </div>
             </div>
             
+            <!-- Manual Mode Controls (shown only when manual mode is active) -->
+            <div id="manual-controls" class="glass rounded-xl p-6 mb-8 hidden">
+                <h2 class="text-xl font-bold mb-4 flex items-center">
+                    <svg class="w-6 h-6 mr-2 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+                    </svg>
+                    Manual Controls
+                    <span class="ml-3 text-sm bg-orange-600 px-2 py-1 rounded">Manual Mode Active</span>
+                </h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
+                    <!-- General Controls -->
+                    <div class="bg-slate-800 bg-opacity-50 rounded-lg p-4">
+                        <h3 class="font-semibold mb-4 text-bjorn-400">System Controls</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="startOrchestrator()" 
+                                    class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors">
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M19 10a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Start Auto
+                            </button>
+                            <button onclick="stopOrchestrator()" 
+                                    class="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition-colors">
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10h6v4H9z"></path>
+                                </svg>
+                                Stop Auto
+                            </button>
+                            <button onclick="triggerNetworkScan()" 
+                                    class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition-colors">
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                Network Scan
+                            </button>
+                            <button onclick="triggerVulnScan()" 
+                                    class="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded transition-colors">
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                </svg>
+                                Vuln Scan
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Manual Attack Controls -->
+                    <div class="bg-slate-800 bg-opacity-50 rounded-lg p-4">
+                        <h3 class="font-semibold mb-4 text-bjorn-400">Manual Attack</h3>
+                        <div class="space-y-3">
+                            <div class="grid grid-cols-3 gap-2">
+                                <select id="manual-ip-dropdown" 
+                                        onchange="updateManualPorts()" 
+                                        class="bg-slate-700 text-white rounded px-3 py-2 border border-slate-600 focus:border-bjorn-400 focus:outline-none">
+                                    <option value="">Select IP</option>
+                                </select>
+                                <select id="manual-port-dropdown" 
+                                        class="bg-slate-700 text-white rounded px-3 py-2 border border-slate-600 focus:border-bjorn-400 focus:outline-none">
+                                    <option value="">Select Port</option>
+                                </select>
+                                <select id="manual-action-dropdown" 
+                                        class="bg-slate-700 text-white rounded px-3 py-2 border border-slate-600 focus:border-bjorn-400 focus:outline-none">
+                                    <option value="">Select Action</option>
+                                </select>
+                            </div>
+                            <button onclick="executeManualAttack()" 
+                                    class="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded transition-colors">
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                Execute Attack
+                            </button>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
             <!-- Console Log -->
             <div class="glass rounded-xl p-6">
                 <h2 class="text-xl font-bold mb-4 flex items-center justify-between">

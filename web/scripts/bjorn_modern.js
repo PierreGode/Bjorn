@@ -516,6 +516,208 @@ async function loadConsoleLogs() {
 }
 
 // ============================================================================
+// MANUAL MODE FUNCTIONS
+// ============================================================================
+
+async function loadManualModeData() {
+    try {
+        const data = await fetchAPI('/api/manual/targets');
+        
+        // Populate IP dropdown
+        const ipDropdown = document.getElementById('manual-ip-dropdown');
+        if (ipDropdown) {
+            ipDropdown.innerHTML = '<option value="">Select IP</option>';
+            if (data.targets && data.targets.length > 0) {
+                data.targets.forEach(target => {
+                    const option = document.createElement('option');
+                    option.value = target.ip;
+                    option.textContent = `${target.ip} (${target.hostname})`;
+                    ipDropdown.appendChild(option);
+                });
+            }
+        }
+        
+        // Populate vulnerability scan IP dropdown
+        const vulnIpDropdown = document.getElementById('vuln-ip-dropdown');
+        if (vulnIpDropdown) {
+            vulnIpDropdown.innerHTML = '<option value="">Select IP</option>';
+            if (data.targets && data.targets.length > 0) {
+                data.targets.forEach(target => {
+                    const option = document.createElement('option');
+                    option.value = target.ip;
+                    option.textContent = `${target.ip} (${target.hostname})`;
+                    vulnIpDropdown.appendChild(option);
+                });
+            }
+        }
+        
+        // Populate action dropdown with available attack types
+        const actionDropdown = document.getElementById('manual-action-dropdown');
+        if (actionDropdown) {
+            actionDropdown.innerHTML = '<option value="">Select Action</option>';
+            const actions = ['ssh', 'ftp', 'telnet', 'smb', 'rdp', 'sql'];
+            actions.forEach(action => {
+                const option = document.createElement('option');
+                option.value = action;
+                option.textContent = action.toUpperCase() + ' Brute Force';
+                actionDropdown.appendChild(option);
+            });
+        }
+        
+        // Store targets data for updateManualPorts function
+        window.manualTargetsData = data.targets || [];
+        
+    } catch (error) {
+        console.error('Error loading manual mode data:', error);
+        addConsoleMessage('Failed to load manual mode data', 'error');
+    }
+}
+
+function updateManualPorts() {
+    const ipDropdown = document.getElementById('manual-ip-dropdown');
+    const portDropdown = document.getElementById('manual-port-dropdown');
+    
+    if (!ipDropdown || !portDropdown) return;
+    
+    const selectedIp = ipDropdown.value;
+    portDropdown.innerHTML = '<option value="">Select Port</option>';
+    
+    if (selectedIp && window.manualTargetsData) {
+        // Find the target with the selected IP
+        const target = window.manualTargetsData.find(t => t.ip === selectedIp);
+        if (target && target.ports) {
+            target.ports.forEach(port => {
+                const option = document.createElement('option');
+                option.value = port;
+                option.textContent = port;
+                portDropdown.appendChild(option);
+            });
+        }
+    }
+}
+
+async function executeManualAttack() {
+    const ip = document.getElementById('manual-ip-dropdown')?.value;
+    const port = document.getElementById('manual-port-dropdown')?.value;
+    const action = document.getElementById('manual-action-dropdown')?.value;
+    
+    if (!ip || !port || !action) {
+        addConsoleMessage('Please select IP, Port, and Action for manual attack', 'error');
+        return;
+    }
+    
+    try {
+        addConsoleMessage(`Executing manual attack: ${action} on ${ip}:${port}`, 'info');
+        
+        const data = await postAPI('/execute_manual_attack', {
+            ip: ip,
+            port: port,
+            action: action
+        });
+        
+        if (data.status === 'success') {
+            addConsoleMessage(`Manual attack executed successfully: ${data.message}`, 'success');
+        } else {
+            addConsoleMessage(`Manual attack failed: ${data.message || 'Unknown error'}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error executing manual attack:', error);
+        addConsoleMessage('Failed to execute manual attack due to network error', 'error');
+    }
+}
+
+async function startOrchestrator() {
+    try {
+        addConsoleMessage('Starting automatic mode...', 'info');
+        
+        const data = await postAPI('/start_orchestrator', {});
+        
+        if (data.status === 'success') {
+            addConsoleMessage('Automatic mode started successfully', 'success');
+            updateElement('bjorn-mode', 'Auto');
+            document.getElementById('bjorn-mode').className = 'text-green-400 font-semibold';
+            
+            // Hide manual controls
+            const manualControls = document.getElementById('manual-controls');
+            if (manualControls) {
+                manualControls.classList.add('hidden');
+            }
+        } else {
+            addConsoleMessage(`Failed to start automatic mode: ${data.message || 'Unknown error'}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error starting orchestrator:', error);
+        addConsoleMessage('Failed to start automatic mode', 'error');
+    }
+}
+
+async function stopOrchestrator() {
+    try {
+        addConsoleMessage('Stopping automatic mode...', 'info');
+        
+        const data = await postAPI('/stop_orchestrator', {});
+        
+        if (data.status === 'success') {
+            addConsoleMessage('Automatic mode stopped - Manual mode activated', 'warning');
+            updateElement('bjorn-mode', 'Manual');
+            document.getElementById('bjorn-mode').className = 'text-orange-400 font-semibold';
+            
+            // Show manual controls
+            const manualControls = document.getElementById('manual-controls');
+            if (manualControls) {
+                manualControls.classList.remove('hidden');
+                // Load manual mode data
+                loadManualModeData();
+            }
+        } else {
+            addConsoleMessage(`Failed to stop automatic mode: ${data.message || 'Unknown error'}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error stopping orchestrator:', error);
+        addConsoleMessage('Failed to stop automatic mode', 'error');
+    }
+}
+
+async function triggerNetworkScan() {
+    try {
+        addConsoleMessage('Triggering network scan...', 'info');
+        
+        const data = await postAPI('/trigger_network_scan', {});
+        
+        if (data.status === 'success') {
+            addConsoleMessage('Network scan triggered successfully', 'success');
+        } else {
+            addConsoleMessage(`Failed to trigger network scan: ${data.message || 'Unknown error'}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error triggering network scan:', error);
+        addConsoleMessage('Failed to trigger network scan', 'error');
+    }
+}
+
+async function triggerVulnScan() {
+    try {
+        addConsoleMessage('Triggering vulnerability scan...', 'info');
+        
+        const data = await postAPI('/trigger_vuln_scan', {});
+        
+        if (data.status === 'success') {
+            addConsoleMessage('Vulnerability scan triggered successfully', 'success');
+        } else {
+            addConsoleMessage(`Failed to trigger vulnerability scan: ${data.message || 'Unknown error'}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error triggering vulnerability scan:', error);
+        addConsoleMessage('Failed to trigger vulnerability scan', 'error');
+    }
+}
+
+// ============================================================================
 // API HELPERS
 // ============================================================================
 
@@ -565,7 +767,32 @@ function updateDashboardStatus(data) {
     // Update status - use the actual e-paper display text
     updateElement('bjorn-status', data.bjorn_status || 'IDLE');
     updateElement('bjorn-says', (data.bjorn_status2 || data.bjorn_status || 'Awakening...'));
-    updateElement('bjorn-mode', data.manual_mode ? 'Manual' : 'Auto');
+    
+    // Update mode and handle manual controls
+    const isManualMode = data.manual_mode;
+    updateElement('bjorn-mode', isManualMode ? 'Manual' : 'Auto');
+    
+    // Update mode styling
+    const modeElement = document.getElementById('bjorn-mode');
+    if (modeElement) {
+        if (isManualMode) {
+            modeElement.className = 'text-orange-400 font-semibold';
+        } else {
+            modeElement.className = 'text-green-400 font-semibold';
+        }
+    }
+    
+    // Show/hide manual controls based on mode
+    const manualControls = document.getElementById('manual-controls');
+    if (manualControls) {
+        if (isManualMode) {
+            manualControls.classList.remove('hidden');
+            // Load manual mode data when showing controls
+            loadManualModeData();
+        } else {
+            manualControls.classList.add('hidden');
+        }
+    }
     
     // Update connectivity status
     updateConnectivityIndicator('wifi-status', data.wifi_connected);
@@ -1042,3 +1269,9 @@ window.checkForUpdatesQuiet = checkForUpdatesQuiet;
 window.performUpdate = performUpdate;
 window.restartService = restartService;
 window.rebootSystem = rebootSystem;
+window.updateManualPorts = updateManualPorts;
+window.executeManualAttack = executeManualAttack;
+window.startOrchestrator = startOrchestrator;
+window.stopOrchestrator = stopOrchestrator;
+window.triggerNetworkScan = triggerNetworkScan;
+window.triggerVulnScan = triggerVulnScan;

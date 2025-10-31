@@ -12,6 +12,7 @@ Features:
 import os
 import sys
 import json
+import csv
 import signal
 import logging
 import threading
@@ -19,7 +20,11 @@ import time
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request, send_from_directory
 from flask_socketio import SocketIO, emit
-from flask_cors import CORS
+try:
+    from flask_cors import CORS
+    flask_cors_available = True
+except ImportError:
+    flask_cors_available = False
 from init_shared import shared_data
 from utils import WebUtils
 from logger import Logger
@@ -35,7 +40,9 @@ app.config['SECRET_KEY'] = 'bjorn-cyberviking-secret-key'
 app.config['JSON_SORT_KEYS'] = False
 
 # Enable CORS
-CORS(app)
+# Set up CORS if available
+if flask_cors_available:
+    CORS(app)
 
 # Initialize SocketIO for real-time updates
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
@@ -695,6 +702,231 @@ def broadcast_status_updates():
             logger.error(f"Error broadcasting status: {e}")
             socketio.sleep(5)
 
+
+# ============================================================================
+# MANUAL MODE ENDPOINTS
+# ============================================================================
+
+@app.route('/api/manual/status')
+def get_manual_mode_status():
+    """Get current manual mode status"""
+    try:
+        return jsonify({
+            'manual_mode': shared_data.config.get('manual_mode', False),
+            'orchestrator_status': shared_data.bjornorch_status
+        })
+    except Exception as e:
+        logger.error(f"Error getting manual mode status: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/manual/targets')
+def get_manual_targets():
+    """Get available targets for manual attacks"""
+    try:
+        targets = []
+        
+        # Read from the live status file
+        if os.path.exists(shared_data.livestatusfile):
+            with open(shared_data.livestatusfile, 'r') as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    if row.get('Alive') == '1':  # Only alive targets
+                        ip = row.get('IP', '')
+                        hostname = row.get('Hostname', ip)
+                        
+                        # Get open ports
+                        ports = []
+                        for key, value in row.items():
+                            if key.isdigit() and value:  # Port columns with values
+                                ports.append(key)
+                        
+                        if ip:
+                            targets.append({
+                                'ip': ip,
+                                'hostname': hostname,
+                                'ports': ports
+                            })
+        
+        return jsonify({'targets': targets})
+        
+    except Exception as e:
+        logger.error(f"Error getting manual targets: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/manual/execute-attack', methods=['POST'])
+def execute_manual_attack():
+    """Execute a manual attack on a specific target"""
+    try:
+        data = request.get_json()
+        target_ip = data.get('ip')
+        target_port = data.get('port') 
+        attack_type = data.get('action')
+        
+        if not target_ip or not attack_type:
+            return jsonify({'success': False, 'error': 'Missing IP or attack type'}), 400
+        
+        # Map attack types to module imports and execution
+        attack_modules = {
+            'ssh': 'actions.ssh_connector',
+            'ftp': 'actions.ftp_connector', 
+            'telnet': 'actions.telnet_connector',
+            'smb': 'actions.smb_connector',
+            'rdp': 'actions.rdp_connector',
+            'sql': 'actions.sql_connector'
+        }
+        
+        if attack_type not in attack_modules:
+            return jsonify({'success': False, 'error': 'Invalid attack type'}), 400
+        
+        # Execute attack in background
+        def execute_attack():
+            try:
+                # Import the attack module dynamically
+                import importlib
+                module = importlib.import_module(attack_modules[attack_type])
+                
+                # Create attack instance
+                attack_class_name = attack_type.upper() + 'Bruteforce' if attack_type != 'sql' else 'SQLBruteforce'
+                attack_class = getattr(module, attack_class_name, None)
+                
+                if attack_class:
+                    attack_instance = attack_class(shared_data)
+                    # Execute with appropriate parameters
+                    if hasattr(attack_instance, 'execute'):
+                        row = {'ip': target_ip, 'hostname': target_ip, 'mac': '00:00:00:00:00:00'}
+                        attack_instance.execute(target_ip, target_port, row, f"manual_{attack_type}")
+                    
+            except Exception as e:
+                logger.error(f"Error executing manual attack: {e}")
+        
+        # Start attack in background thread
+        import threading
+        threading.Thread(target=execute_attack, daemon=True).start()
+        
+        logger.info(f"Manual attack initiated: {attack_type} on {target_ip}:{target_port}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Manual {attack_type} attack initiated on {target_ip}' + (f':{target_port}' if target_port else '')
+        })
+        
+    except Exception as e:
+        logger.error(f"Error executing manual attack: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/manual/orchestrator/start', methods=['POST'])
+def start_orchestrator_manual():
+    """Start the orchestrator in manual mode"""
+    try:
+        # Update shared data to indicate manual mode
+        shared_data.config['manual_mode'] = True
+        shared_data.save_config()  # Save the configuration
+        
+        logger.info("Manual mode enabled")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Manual mode enabled - use individual triggers for actions'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error enabling manual mode: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/manual/orchestrator/stop', methods=['POST'])
+def stop_orchestrator_manual():
+    """Disable manual mode"""
+    try:
+        # Update shared data to disable manual mode
+        shared_data.config['manual_mode'] = False
+        shared_data.save_config()  # Save the configuration
+        
+        logger.info("Manual mode disabled")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Manual mode disabled'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error disabling manual mode: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/manual/scan/network', methods=['POST'])
+def trigger_network_scan():
+    """Trigger a manual network scan"""
+    try:
+        data = request.get_json()
+        target_range = data.get('range', '192.168.1.0/24')  # Default range
+        
+        # Execute scan in background
+        def execute_scan():
+            try:
+                # Import and create scanner
+                from actions.scanning import NetworkScanner
+                scanner = NetworkScanner(shared_data)
+                
+                # Run the scan
+                scanner.scan()
+                
+            except Exception as e:
+                logger.error(f"Error executing network scan: {e}")
+        
+        # Start scan in background thread
+        import threading
+        threading.Thread(target=execute_scan, daemon=True).start()
+        
+        logger.info(f"Manual network scan initiated for range: {target_range}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Network scan initiated for {target_range}'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error triggering network scan: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/manual/scan/vulnerability', methods=['POST'])
+def trigger_vulnerability_scan():
+    """Trigger a manual vulnerability scan"""
+    try:
+        data = request.get_json()
+        target_ip = data.get('ip')
+        
+        if not target_ip:
+            return jsonify({'success': False, 'error': 'Target IP required'}), 400
+        
+        # Execute vulnerability scan in background
+        def execute_vuln_scan():
+            try:
+                # Import and create vulnerability scanner
+                from actions.nmap_vuln_scanner import NmapVulnScanner
+                vuln_scanner = NmapVulnScanner(shared_data)
+                
+                # Create a row for the scanner
+                row = {'ip': target_ip, 'hostname': target_ip, 'mac': '00:00:00:00:00:00'}
+                
+                # Execute vulnerability scan
+                vuln_scanner.execute(target_ip, row, "manual_vuln_scan")
+                
+            except Exception as e:
+                logger.error(f"Error executing vulnerability scan: {e}")
+        
+        # Start scan in background thread
+        import threading
+        threading.Thread(target=execute_vuln_scan, daemon=True).start()
+        
+        logger.info(f"Manual vulnerability scan initiated for: {target_ip}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Vulnerability scan initiated for {target_ip}'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error triggering vulnerability scan: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================================================
 # SIGNAL HANDLERS
