@@ -46,6 +46,30 @@ web_utils = WebUtils(shared_data, logger)
 clients_connected = 0
 
 
+def safe_int(value, default=0):
+    """Safely convert value to int, handling numpy types"""
+    try:
+        if hasattr(value, 'item'):  # numpy types have .item() method
+            return int(value.item())
+        return int(value) if value is not None else default
+    except (ValueError, TypeError, AttributeError):
+        return default
+
+def safe_str(value, default=""):
+    """Safely convert value to string"""
+    try:
+        return str(value) if value is not None else default
+    except (ValueError, TypeError):
+        return default
+
+def safe_bool(value, default=False):
+    """Safely convert value to boolean"""
+    try:
+        return bool(value) if value is not None else default
+    except (ValueError, TypeError):
+        return default
+
+
 # ============================================================================
 # STATIC FILE ROUTES
 # ============================================================================
@@ -71,20 +95,20 @@ def get_status():
     """Get current Bjorn status"""
     try:
         status_data = {
-            'bjorn_status': shared_data.bjornstatustext,
-            'bjorn_status2': shared_data.bjornstatustext2,
-            'bjorn_says': shared_data.bjornsays,
-            'orchestrator_status': shared_data.bjornorch_status,
-            'target_count': shared_data.targetnbr,
-            'port_count': shared_data.portnbr,
-            'vulnerability_count': shared_data.vulnnbr,
-            'credential_count': shared_data.crednbr,
-            'data_count': shared_data.datanbr,
-            'wifi_connected': shared_data.wifi_connected,
-            'bluetooth_active': shared_data.bluetooth_active,
-            'pan_connected': shared_data.pan_connected,
-            'usb_active': shared_data.usb_active,
-            'manual_mode': shared_data.config.get('manual_mode', False),
+            'bjorn_status': safe_str(shared_data.bjornstatustext),
+            'bjorn_status2': safe_str(shared_data.bjornstatustext2),
+            'bjorn_says': safe_str(shared_data.bjornsays),
+            'orchestrator_status': safe_str(shared_data.bjornorch_status),
+            'target_count': safe_int(shared_data.targetnbr),
+            'port_count': safe_int(shared_data.portnbr),
+            'vulnerability_count': safe_int(shared_data.vulnnbr),
+            'credential_count': safe_int(shared_data.crednbr),
+            'data_count': safe_int(shared_data.datanbr),
+            'wifi_connected': safe_bool(shared_data.wifi_connected),
+            'bluetooth_active': safe_bool(shared_data.bluetooth_active),
+            'pan_connected': safe_bool(shared_data.pan_connected),
+            'usb_active': safe_bool(shared_data.usb_active),
+            'manual_mode': safe_bool(shared_data.config.get('manual_mode', False)),
             'timestamp': datetime.now().isoformat()
         }
         return jsonify(status_data)
@@ -219,11 +243,11 @@ def get_stats():
     """Get aggregated statistics"""
     try:
         stats = {
-            'total_targets': shared_data.targetnbr,
-            'total_ports': shared_data.portnbr,
-            'total_vulnerabilities': shared_data.vulnnbr,
-            'total_credentials': shared_data.crednbr,
-            'total_data_stolen': shared_data.datanbr,
+            'total_targets': safe_int(shared_data.targetnbr),
+            'total_ports': safe_int(shared_data.portnbr),
+            'total_vulnerabilities': safe_int(shared_data.vulnnbr),
+            'total_credentials': safe_int(shared_data.crednbr),
+            'total_data_stolen': safe_int(shared_data.datanbr),
             'scan_results_count': 0,
             'services_discovered': {}
         }
@@ -232,7 +256,7 @@ def get_stats():
         if os.path.exists(shared_data.netkbfile):
             import pandas as pd
             df = pd.read_csv(shared_data.netkbfile)
-            stats['scan_results_count'] = len(df[df['Alive'] == 1]) if 'Alive' in df.columns else len(df)
+            stats['scan_results_count'] = safe_int(len(df[df['Alive'] == 1]) if 'Alive' in df.columns else len(df))
         
         return jsonify(stats)
     except Exception as e:
@@ -381,20 +405,20 @@ def handle_loot_request():
 def get_current_status():
     """Get current status data"""
     return {
-        'bjorn_status': shared_data.bjornstatustext,
-        'bjorn_status2': shared_data.bjornstatustext2,
-        'bjorn_says': shared_data.bjornsays,
-        'orchestrator_status': shared_data.bjornorch_status,
-        'target_count': shared_data.targetnbr,
-        'port_count': shared_data.portnbr,
-        'vulnerability_count': shared_data.vulnnbr,
-        'credential_count': shared_data.crednbr,
-        'data_count': shared_data.datanbr,
-        'wifi_connected': shared_data.wifi_connected,
-        'bluetooth_active': shared_data.bluetooth_active,
-        'pan_connected': shared_data.pan_connected,
-        'usb_active': shared_data.usb_active,
-        'manual_mode': shared_data.config.get('manual_mode', False),
+        'bjorn_status': safe_str(shared_data.bjornstatustext),
+        'bjorn_status2': safe_str(shared_data.bjornstatustext2),
+        'bjorn_says': safe_str(shared_data.bjornsays),
+        'orchestrator_status': safe_str(shared_data.bjornorch_status),
+        'target_count': safe_int(shared_data.targetnbr),
+        'port_count': safe_int(shared_data.portnbr),
+        'vulnerability_count': safe_int(shared_data.vulnnbr),
+        'credential_count': safe_int(shared_data.crednbr),
+        'data_count': safe_int(shared_data.datanbr),
+        'wifi_connected': safe_bool(shared_data.wifi_connected),
+        'bluetooth_active': safe_bool(shared_data.bluetooth_active),
+        'pan_connected': safe_bool(shared_data.pan_connected),
+        'usb_active': safe_bool(shared_data.usb_active),
+        'manual_mode': safe_bool(shared_data.config.get('manual_mode', False)),
         'timestamp': datetime.now().isoformat()
     }
 
