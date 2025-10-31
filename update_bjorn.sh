@@ -73,6 +73,40 @@ chmod +x "$BJORN_PATH"/*.sh 2>/dev/null || true
 chmod +x "$BJORN_PATH/kill_port_8000.sh" 2>/dev/null || true
 chmod +x "$BJORN_PATH/update_bjorn.sh" 2>/dev/null || true
 
+echo -e "${BLUE}Step 6.5: Validating actions.json configuration...${NC}"
+python3 << 'PYTHON_EOF'
+import json
+import os
+
+actions_file = "/home/bjorn/Bjorn/config/actions.json"
+
+try:
+    with open(actions_file, 'r') as f:
+        actions = json.load(f)
+    
+    has_scanning = any(action.get('b_module') == 'scanning' for action in actions)
+    
+    if not has_scanning:
+        print("WARNING: scanning module missing, adding it...")
+        scanning_action = {
+            "b_module": "scanning",
+            "b_class": "NetworkScanner",
+            "b_port": None,
+            "b_status": "network_scanner",
+            "b_parent": None
+        }
+        actions.insert(0, scanning_action)
+        
+        with open(actions_file, 'w') as f:
+            json.dump(actions, f, indent=4)
+        print("SUCCESS: Added scanning module to actions.json")
+    else:
+        print("SUCCESS: scanning module validated")
+        
+except Exception as e:
+    print(f"ERROR validating actions.json: {e}")
+PYTHON_EOF
+
 echo -e "${BLUE}Step 7: Starting Bjorn service...${NC}"
 systemctl start bjorn.service
 

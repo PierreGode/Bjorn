@@ -491,6 +491,43 @@ setup_bjorn() {
     # Ensure bjorn user owns all script files
     chown $BJORN_USER:$BJORN_USER $BJORN_PATH/*.sh 2>/dev/null || true
     
+    # Validate and fix actions.json file
+    log "INFO" "Validating actions.json configuration..."
+    python3 << 'PYTHON_EOF'
+import json
+import os
+
+actions_file = "/home/bjorn/Bjorn/config/actions.json"
+
+# Check if scanning module exists in actions.json
+try:
+    with open(actions_file, 'r') as f:
+        actions = json.load(f)
+    
+    # Check if scanning module is present
+    has_scanning = any(action.get('b_module') == 'scanning' for action in actions)
+    
+    if not has_scanning:
+        print("WARNING: scanning module missing from actions.json, adding it...")
+        scanning_action = {
+            "b_module": "scanning",
+            "b_class": "NetworkScanner",
+            "b_port": None,
+            "b_status": "network_scanner",
+            "b_parent": None
+        }
+        actions.insert(0, scanning_action)
+        
+        with open(actions_file, 'w') as f:
+            json.dump(actions, f, indent=4)
+        print("SUCCESS: Added scanning module to actions.json")
+    else:
+        print("SUCCESS: scanning module found in actions.json")
+        
+except Exception as e:
+    print(f"ERROR validating actions.json: {e}")
+PYTHON_EOF
+    
     # Add bjorn user to necessary groups
     usermod -a -G spi,gpio,i2c $BJORN_USER
     check_success "Added bjorn user to required groups"
