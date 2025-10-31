@@ -248,7 +248,7 @@ class SharedData:
             logger.info("Initializing EPD display...")
             time.sleep(1)
             self.epd_helper = EPDHelper(self.config["epd_type"])
-            self.epd_helper = EPDHelper(self.epd_type)
+            # self.epd_helper = EPDHelper(self.epd_type)  # FIXED: Commented out invalid duplicate initialization
             if self.config["epd_type"] == "epd2in7":
                 logger.info("EPD type: epd2in7 screen reversed")
                 self.screen_reversed = False
@@ -262,12 +262,22 @@ class SharedData:
                 self.screen_reversed = True
                 self.web_screen_reversed = True
             elif self.config["epd_type"] == "epd2in13_V4":
-                logger.info("EPD type: epd2in13_V4 screen reversed")
-                self.screen_reversed = True
-                self.web_screen_reversed = True
+                logger.info("EPD type: epd2in13_V4 screen normal (not reversed)")
+                self.screen_reversed = False
+                self.web_screen_reversed = False
             self.epd_helper.init_full_update()
             self.width, self.height = self.epd_helper.epd.width, self.epd_helper.epd.height
             logger.info(f"EPD {self.config['epd_type']} initialized with size: {self.width}x{self.height}")
+            
+            # Display test image to verify EPD is working
+            from PIL import ImageDraw
+            test_image = Image.new('1', (self.width, self.height), 255)
+            draw = ImageDraw.Draw(test_image)
+            draw.text((10, 10), "EPD Test", fill=0)
+            if self.config.get("reversed", False):
+                test_image = test_image.rotate(180)
+            self.epd_helper.epd.display(self.epd_helper.epd.getbuffer(test_image))
+            logger.info("Test image displayed on EPD.")
         except Exception as e:
             logger.error(f"Error initializing EPD display: {e}")
             raise
