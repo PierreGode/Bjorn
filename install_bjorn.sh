@@ -22,7 +22,7 @@ VERBOSE=false
 BJORN_USER="bjorn"
 BJORN_PATH="/home/${BJORN_USER}/Bjorn"
 CURRENT_STEP=0
-TOTAL_STEPS=8
+TOTAL_STEPS=9
 
 if [[ "$1" == "--help" ]]; then
     echo "Usage: sudo ./install_bjorn.sh"
@@ -195,6 +195,42 @@ check_system_compatibility() {
     return 0
 }
 
+# Check internet connectivity
+check_internet() {
+    log "INFO" "Checking internet connectivity..."
+    
+    # Try to ping common servers
+    if ping -c 2 8.8.8.8 > /dev/null 2>&1 || ping -c 2 1.1.1.1 > /dev/null 2>&1; then
+        log "SUCCESS" "Internet connectivity confirmed"
+        
+        # Test DNS resolution
+        if ping -c 1 pypi.org > /dev/null 2>&1; then
+            log "SUCCESS" "DNS resolution working"
+        else
+            log "WARNING" "DNS resolution issues detected. Package installation may be slow."
+            log "INFO" "Consider checking /etc/resolv.conf or your network settings"
+        fi
+        return 0
+    else
+        log "WARNING" "No internet connectivity detected!"
+        echo -e "${YELLOW}Internet connection is required to download Python packages.${NC}"
+        echo -e "${YELLOW}Please check your network connection and try again.${NC}"
+        echo -e "\nDo you want to:"
+        echo "1. Continue anyway (installation may fail)"
+        echo "2. Exit and fix network issues first (recommended)"
+        read -r choice
+        case $choice in
+            1) 
+                log "WARNING" "Continuing without verified internet connection"
+                return 0
+                ;;
+            *)
+                log "INFO" "Installation aborted - please fix network issues first"
+                clean_exit 1
+                ;;
+        esac
+    fi
+}
 
 
 # Install system dependencies
@@ -603,23 +639,26 @@ main() {
         1)
             CURRENT_STEP=1; show_progress "Checking system compatibility"
             check_system_compatibility
+            
+            CURRENT_STEP=2; show_progress "Checking internet connectivity"
+            check_internet
 
-            CURRENT_STEP=2; show_progress "Installing system dependencies"
+            CURRENT_STEP=3; show_progress "Installing system dependencies"
             install_dependencies
 
-            CURRENT_STEP=3; show_progress "Configuring system limits"
+            CURRENT_STEP=4; show_progress "Configuring system limits"
             configure_system_limits
 
-            CURRENT_STEP=4; show_progress "Configuring interfaces"
+            CURRENT_STEP=5; show_progress "Configuring interfaces"
             configure_interfaces
 
-            CURRENT_STEP=5; show_progress "Setting up BJORN"
+            CURRENT_STEP=6; show_progress "Setting up BJORN"
             setup_bjorn
 
-            CURRENT_STEP=6; show_progress "Configuring USB Gadget"
+            CURRENT_STEP=7; show_progress "Configuring USB Gadget"
             configure_usb_gadget
 
-            CURRENT_STEP=7; show_progress "Setting up services"
+            CURRENT_STEP=8; show_progress "Setting up services"
             setup_services
 
             CURRENT_STEP=8; show_progress "Verifying installation"
