@@ -24,7 +24,7 @@ import subprocess
 from init_shared import shared_data
 from display import Display, handle_exit_display
 from comment import Commentaireia
-from webapp import web_thread, handle_exit_web
+from webapp_modern import run_server as web_thread, handle_exit as handle_exit_web
 from orchestrator import Orchestrator
 from logger import Logger
 
