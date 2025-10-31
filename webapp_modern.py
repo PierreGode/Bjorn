@@ -230,8 +230,22 @@ def check_updates():
             fetch_result = subprocess.run(['git', 'fetch', 'origin'], cwd=repo_path, check=True, capture_output=True, text=True)
             logger.info(f"Git fetch completed: {fetch_result.stdout}")
         except subprocess.CalledProcessError as e:
-            logger.warning(f"Could not fetch from remote repository: {e.stderr}")
-            return jsonify({'error': 'Failed to fetch from remote repository'}), 500
+            logger.error(f"Git fetch failed: {e.stderr}")
+            # Try to fix git safe directory issue and retry
+            try:
+                subprocess.run(['git', 'config', '--global', '--add', 'safe.directory', repo_path], 
+                             cwd=repo_path, check=True, capture_output=True)
+                logger.info(f"Added {repo_path} to git safe directories")
+                # Retry fetch
+                fetch_result = subprocess.run(['git', 'fetch', 'origin'], cwd=repo_path, check=True, capture_output=True, text=True)
+                logger.info(f"Git fetch completed after fixing safe directory: {fetch_result.stdout}")
+            except subprocess.CalledProcessError as e2:
+                logger.error(f"Git fetch still failed after fixing safe directory: {e2.stderr}")
+                return jsonify({
+                    'error': 'Failed to fetch from remote repository. Git safe directory issue detected.',
+                    'fix_command': f'git config --global --add safe.directory {repo_path}',
+                    'detailed_error': str(e2.stderr)
+                }), 500
         
         # Check if local branch is behind remote
         try:
@@ -370,6 +384,41 @@ def perform_update():
         
     except Exception as e:
         logger.error(f"Error performing update: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/system/fix-git', methods=['POST'])
+def fix_git_safe_directory():
+    """Fix git safe directory issue"""
+    try:
+        import subprocess
+        import os
+        
+        repo_path = os.getcwd()
+        
+        # Add repo to git safe directories
+        result = subprocess.run(
+            ['git', 'config', '--global', '--add', 'safe.directory', repo_path], 
+            cwd=repo_path, 
+            capture_output=True, 
+            text=True, 
+            check=True
+        )
+        
+        logger.info(f"Added {repo_path} to git safe directories")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Successfully added {repo_path} to git safe directories'
+        })
+        
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to fix git safe directory: {e.stderr}")
+        return jsonify({
+            'success': False, 
+            'error': f'Failed to fix git configuration: {e.stderr}'
+        }), 500
+    except Exception as e:
+        logger.error(f"Error fixing git safe directory: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/system/restart-service', methods=['POST'])

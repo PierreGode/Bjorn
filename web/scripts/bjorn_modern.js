@@ -367,8 +367,58 @@ async function checkForUpdates() {
         console.error('Error checking for updates:', error);
         updateElement('update-status', 'Error');
         document.getElementById('update-status').className = 'text-sm px-2 py-1 rounded bg-red-700 text-red-300';
-        updateElement('update-info', 'Failed to check for updates');
-        addConsoleMessage(`Failed to check for updates: ${error.message}`, 'error');
+        
+        // Check if it's a git safe directory error
+        if (error.message && error.message.includes('safe.directory')) {
+            updateElement('update-info', 'Git safe directory issue detected');
+            addConsoleMessage('Git safe directory error detected. Click the Fix Git button.', 'error');
+            
+            // Show fix git button
+            const updateBtn = document.getElementById('update-btn');
+            updateBtn.textContent = 'Fix Git Config';
+            updateBtn.disabled = false;
+            updateBtn.className = 'w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded transition-colors';
+            updateBtn.onclick = fixGitConfig;
+        } else {
+            updateElement('update-info', 'Failed to check for updates');
+            addConsoleMessage(`Failed to check for updates: ${error.message}`, 'error');
+        }
+    }
+}
+
+async function fixGitConfig() {
+    try {
+        updateElement('update-btn-text', 'Fixing...');
+        const updateBtn = document.getElementById('update-btn');
+        updateBtn.disabled = true;
+        
+        addConsoleMessage('Fixing git configuration...', 'info');
+        
+        const result = await postAPI('/api/system/fix-git', {});
+        
+        if (result.success) {
+            addConsoleMessage('Git configuration fixed successfully', 'success');
+            
+            // Reset button and retry update check
+            updateBtn.textContent = 'Update System';
+            updateBtn.onclick = performUpdate;
+            
+            // Retry update check
+            setTimeout(() => {
+                checkForUpdates();
+            }, 1000);
+        } else {
+            addConsoleMessage(`Failed to fix git configuration: ${result.error}`, 'error');
+            updateBtn.disabled = false;
+            updateElement('update-btn-text', 'Fix Git Config');
+        }
+        
+    } catch (error) {
+        console.error('Error fixing git config:', error);
+        addConsoleMessage('Failed to fix git configuration', 'error');
+        const updateBtn = document.getElementById('update-btn');
+        updateBtn.disabled = false;
+        updateElement('update-btn-text', 'Fix Git Config');
     }
 }
 
