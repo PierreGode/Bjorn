@@ -200,6 +200,8 @@ class Display:
                 else:
                     self.manual_mode_txt = "A"
                 self.shared_data.wifi_connected = self.is_wifi_connected()
+                self.shared_data.ap_mode_active = self.is_ap_mode_active()
+                self.shared_data.ap_client_count = self.get_ap_client_count() if self.shared_data.ap_mode_active else 0
                 self.shared_data.usb_active = self.is_usb_connected()
                 
                 # Update Wi-Fi/AP status text for display
@@ -267,6 +269,30 @@ class Display:
         except Exception as e:
             logger.error(f"Error checking AP mode status: {e}")
             return False
+
+    def get_ap_client_count(self):
+        """Get the number of clients connected to AP mode."""
+        try:
+            # Try to get from WiFi manager first
+            if (hasattr(self.shared_data, 'bjorn_instance') and 
+                self.shared_data.bjorn_instance and 
+                hasattr(self.shared_data.bjorn_instance, 'wifi_manager')):
+                
+                wifi_mgr = self.shared_data.bjorn_instance.wifi_manager
+                if hasattr(wifi_mgr, 'ap_clients_count'):
+                    return wifi_mgr.ap_clients_count
+            
+            # Fallback to hostapd_cli
+            result = subprocess.run(['hostapd_cli', '-i', 'wlan0', 'list_sta'], 
+                                  capture_output=True, text=True, timeout=2)
+            if result.returncode == 0:
+                clients = [line.strip() for line in result.stdout.strip().split('\n') if line.strip()]
+                return len(clients)
+            
+            return 0
+        except Exception as e:
+            logger.error(f"Error getting AP client count: {e}")
+            return 0
 
     def get_wifi_status_text(self):
         """Get descriptive text for current Wi-Fi status."""
@@ -377,7 +403,14 @@ class Display:
                 draw.text((int(37 * self.scale_factor_x), int(5 * self.scale_factor_y)), "BJORN", font=self.shared_data.font_viking, fill=0)
                 draw.text((int(110 * self.scale_factor_x), int(170 * self.scale_factor_y)), self.manual_mode_txt, font=self.shared_data.font_arial14, fill=0)
                 
-                if self.shared_data.wifi_connected:
+                # Show AP status or WiFi status in the top-left corner
+                if hasattr(self.shared_data, 'ap_mode_active') and self.shared_data.ap_mode_active:
+                    # Show AP status with client count
+                    ap_text = f"AP"
+                    if hasattr(self.shared_data, 'ap_client_count') and self.shared_data.ap_client_count > 0:
+                        ap_text = f"AP:{self.shared_data.ap_client_count}"
+                    draw.text((int(3 * self.scale_factor_x), int(3 * self.scale_factor_y)), ap_text, font=self.shared_data.font_arial9, fill=0)
+                elif self.shared_data.wifi_connected:
                     image.paste(self.shared_data.wifi, (int(3 * self.scale_factor_x), int(3 * self.scale_factor_y)))
                 # # # if self.shared_data.bluetooth_active:
                 # # #     image.paste(self.shared_data.bluetooth, (int(23 * self.scale_factor_x), int(4 * self.scale_factor_y)))
