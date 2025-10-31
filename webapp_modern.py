@@ -220,13 +220,18 @@ def check_updates():
         import os
         
         # Get current working directory (should be the repo root)
-        repo_path = os.path.dirname(os.path.abspath(__file__))
+        # Use the directory where the webapp is running from, not the file location
+        repo_path = os.getcwd()
+        
+        logger.info(f"Checking for updates in repository: {repo_path}")
         
         # Fetch latest changes from remote
         try:
-            subprocess.run(['git', 'fetch', 'origin'], cwd=repo_path, check=True, capture_output=True)
-        except subprocess.CalledProcessError:
-            logger.warning("Could not fetch from remote repository")
+            fetch_result = subprocess.run(['git', 'fetch', 'origin'], cwd=repo_path, check=True, capture_output=True, text=True)
+            logger.info(f"Git fetch completed: {fetch_result.stdout}")
+        except subprocess.CalledProcessError as e:
+            logger.warning(f"Could not fetch from remote repository: {e.stderr}")
+            return jsonify({'error': 'Failed to fetch from remote repository'}), 500
         
         # Check if local branch is behind remote
         try:
@@ -238,7 +243,9 @@ def check_updates():
                 check=True
             )
             commits_behind = int(result.stdout.strip())
-        except (subprocess.CalledProcessError, ValueError):
+            logger.info(f"Commits behind: {commits_behind}")
+        except (subprocess.CalledProcessError, ValueError) as e:
+            logger.error(f"Error checking commits behind main: {e}")
             # Fallback: try master branch or assume up to date
             try:
                 result = subprocess.run(
@@ -249,8 +256,23 @@ def check_updates():
                     check=True
                 )
                 commits_behind = int(result.stdout.strip())
+                logger.info(f"Commits behind (master): {commits_behind}")
             except:
+                logger.error("Could not determine commits behind, assuming up to date")
                 commits_behind = 0
+        
+        # Get current HEAD commit
+        try:
+            current_result = subprocess.run(
+                ['git', 'log', 'HEAD', '--oneline', '-1'], 
+                cwd=repo_path, 
+                capture_output=True, 
+                text=True, 
+                check=True
+            )
+            current_commit = current_result.stdout.strip()
+        except:
+            current_commit = "Unable to fetch current commit"
         
         # Get latest commit info
         try:
@@ -275,10 +297,14 @@ def check_updates():
             except:
                 latest_commit = "Unable to fetch latest commit"
         
+        logger.info(f"Update check result - Behind: {commits_behind}, Current: {current_commit}, Latest: {latest_commit}")
+        
         return jsonify({
             'updates_available': commits_behind > 0,
             'commits_behind': commits_behind,
-            'latest_commit': latest_commit
+            'current_commit': current_commit,
+            'latest_commit': latest_commit,
+            'repo_path': repo_path
         })
         
     except Exception as e:
@@ -292,7 +318,8 @@ def perform_update():
         import subprocess
         import os
         
-        repo_path = os.path.dirname(os.path.abspath(__file__))
+        repo_path = os.getcwd()
+        logger.info(f"Performing update in repository: {repo_path}")
         
         # Perform git pull
         try:
@@ -304,7 +331,9 @@ def perform_update():
                 check=True
             )
             output = result.stdout
+            logger.info(f"Git pull completed: {output}")
         except subprocess.CalledProcessError as e:
+            logger.error(f"Git pull main failed: {e.stderr}")
             # Try master branch as fallback
             try:
                 result = subprocess.run(
@@ -315,7 +344,9 @@ def perform_update():
                     check=True
                 )
                 output = result.stdout
+                logger.info(f"Git pull master completed: {output}")
             except subprocess.CalledProcessError as e2:
+                logger.error(f"Git pull master also failed: {e2.stderr}")
                 return jsonify({'success': False, 'error': f'Git pull failed: {e2.stderr}'}), 500
         
         # Schedule service restart after a short delay

@@ -332,7 +332,14 @@ async function checkForUpdates() {
         
         const data = await fetchAPI('/api/system/check-updates');
         
-        if (data.updates_available) {
+        // Debug logging
+        console.log('Update check response:', data);
+        addConsoleMessage(`Debug: Repo path: ${data.repo_path}`, 'info');
+        addConsoleMessage(`Debug: Current commit: ${data.current_commit}`, 'info');
+        addConsoleMessage(`Debug: Latest commit: ${data.latest_commit}`, 'info');
+        addConsoleMessage(`Debug: Commits behind: ${data.commits_behind}`, 'info');
+        
+        if (data.updates_available && data.commits_behind > 0) {
             updateElement('update-status', 'Update Available');
             document.getElementById('update-status').className = 'text-sm px-2 py-1 rounded bg-orange-700 text-orange-300';
             updateElement('update-info', `${data.commits_behind} commits behind. Latest: ${data.latest_commit || 'Unknown'}`);
@@ -361,7 +368,7 @@ async function checkForUpdates() {
         updateElement('update-status', 'Error');
         document.getElementById('update-status').className = 'text-sm px-2 py-1 rounded bg-red-700 text-red-300';
         updateElement('update-info', 'Failed to check for updates');
-        addConsoleMessage('Failed to check for updates', 'error');
+        addConsoleMessage(`Failed to check for updates: ${error.message}`, 'error');
     }
 }
 
