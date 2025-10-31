@@ -24,7 +24,7 @@ import subprocess
 from init_shared import shared_data
 from display import Display, handle_exit_display
 from comment import Commentaireia
-from webapp_modern import run_server as web_thread, handle_exit as handle_exit_web
+from webapp_modern import run_server, handle_exit as handle_exit_web
 from orchestrator import Orchestrator
 from logger import Logger
 
@@ -147,12 +147,16 @@ if __name__ == "__main__":
 
         if shared_data.config["websrv"]:
             logger.info("Starting the web server...")
+            web_thread = threading.Thread(target=run_server)
             web_thread.start()
+        else:
+            web_thread = None
 
         signal.signal(signal.SIGINT, lambda sig, frame: handle_exit(sig, frame, display_thread, bjorn_thread, web_thread))
         signal.signal(signal.SIGTERM, lambda sig, frame: handle_exit(sig, frame, display_thread, bjorn_thread, web_thread))
 
     except Exception as e:
         logger.error(f"An exception occurred during thread start: {e}")
-        handle_exit_display(signal.SIGINT, None)
+        if 'display_thread' in locals():
+            handle_exit_display(signal.SIGINT, None, display_thread)
         exit(1)
