@@ -135,3 +135,49 @@ $RECYCLE.BIN/
 
 scripts
 */certs/
+
+# Bjorn-specific files and directories
+# Runtime data directories
+data/logs/
+data/output/
+backup/backups/
+backup/uploads/
+
+# Configuration files (contains sensitive data)
+config/shared_config.json
+
+# Installation and runtime logs
+install_*.log
+/var/log/bjorn_install/
+
+# Network and scan results
+data/output/scan_results/
+data/output/crackedpwd/
+data/output/data_stolen/
+data/output/vulnerabilities/
+data/output/zombies/
+
+# User dictionaries (may contain custom wordlists)
+data/input/dictionary/passwords.txt
+data/input/dictionary/users.txt
+
+# System service files (installed by script)
+/etc/systemd/system/bjorn.service
+/etc/systemd/system/usb-gadget.service
+/usr/local/bin/usb-gadget.sh
+
+# Web interface uploads
+web/uploads/
+
+# Comments data (may contain sensitive analysis)
+resources/comments/comments.json
+
+# Runtime process files
+*.pid
+*.lock
+
+# Backup files
+*.backup
+*.bak
+*.orig
+Bjorn.py.original

@@ -758,8 +758,9 @@ main() {
             ;;
     esac
 
-    #removed git files
-    find "$BJORN_PATH" -name ".git*" -exec rm -rf {} +
+    # Git repository is preserved for updates
+    # Use .gitignore to protect runtime data and configurations
+    log "INFO" "Git repository preserved for future updates"
 
     log "SUCCESS" "BJORN installation completed!"
     log "INFO" "Please reboot your system to apply all changes."
@@ -772,6 +773,11 @@ main() {
     echo "   - DNS Servers: 8.8.8.8, 8.8.4.4"
     echo "2. Web interface will be available at: http://[device-ip]:8000"
     echo "3. Make sure your e-Paper HAT (2.13-inch) is properly connected"
+    echo -e "\n${BLUE}To update Bjorn in the future:${NC}"
+    echo "   cd /home/bjorn/Bjorn"
+    echo "   sudo git stash  # Save any local changes"
+    echo "   sudo git pull   # Get latest updates"
+    echo "   sudo systemctl restart bjorn"
 
     read -p "Would you like to reboot now? (y/n): " reboot_now
     if [ "$reboot_now" = "y" ]; then
