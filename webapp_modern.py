@@ -214,6 +214,84 @@ def get_vulnerabilities():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/stats')
+def get_stats():
+    """Get aggregated statistics"""
+    try:
+        stats = {
+            'total_targets': shared_data.targetnbr,
+            'total_ports': shared_data.portnbr,
+            'total_vulnerabilities': shared_data.vulnnbr,
+            'total_credentials': shared_data.crednbr,
+            'total_data_stolen': shared_data.datanbr,
+            'scan_results_count': 0,
+            'services_discovered': {}
+        }
+        
+        # Add scan results count
+        if os.path.exists(shared_data.netkbfile):
+            import pandas as pd
+            df = pd.read_csv(shared_data.netkbfile)
+            stats['scan_results_count'] = len(df[df['Alive'] == 1]) if 'Alive' in df.columns else len(df)
+        
+        return jsonify(stats)
+    except Exception as e:
+        logger.error(f"Error getting stats: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
+# LEGACY ENDPOINTS (for compatibility)
+# ============================================================================
+
+@app.route('/network_data')
+def legacy_network_data():
+    """Legacy endpoint for network data"""
+    return get_network()
+
+@app.route('/list_credentials')
+def legacy_credentials():
+    """Legacy endpoint for credentials"""
+    return get_credentials()
+
+@app.route('/get_logs')
+def legacy_logs():
+    """Legacy endpoint for logs"""
+    return get_logs()
+
+@app.route('/netkb_data_json')
+def legacy_netkb_json():
+    """Legacy endpoint for network knowledge base JSON"""
+    try:
+        netkb_file = shared_data.netkbfile
+        if not os.path.exists(netkb_file):
+            return jsonify({'ips': [], 'ports': {}, 'actions': []})
+            
+        import pandas as pd
+        df = pd.read_csv(netkb_file)
+        data = df[df['Alive'] == 1] if 'Alive' in df.columns else df
+        
+        # Get available actions from actions file
+        actions = []
+        try:
+            with open(shared_data.actions_file, 'r') as f:
+                actions_config = json.load(f)
+                actions = list(actions_config.keys())
+        except Exception:
+            pass
+        
+        response_data = {
+            'ips': data['IPs'].tolist() if 'IPs' in data.columns else [],
+            'ports': {row['IPs']: row['Ports'].split(';') for _, row in data.iterrows() if 'Ports' in row},
+            'actions': actions
+        }
+        
+        return jsonify(response_data)
+    except Exception as e:
+        logger.error(f"Error getting netkb JSON: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 # ============================================================================
 # WEBSOCKET EVENTS
 # ============================================================================
@@ -225,13 +303,24 @@ def handle_connect():
     clients_connected += 1
     logger.info(f"Client connected. Total clients: {clients_connected}")
     emit('connected', {'message': 'Connected to Bjorn'})
+    
+    # Send initial data to new client
+    try:
+        status_data = get_current_status()
+        emit('status_update', status_data)
+        
+        # Send recent logs
+        logs = get_recent_logs()
+        emit('log_update', logs)
+    except Exception as e:
+        logger.error(f"Error sending initial data: {e}")
 
 
 @socketio.on('disconnect')
 def handle_disconnect():
     """Handle client disconnection"""
     global clients_connected
-    clients_connected -= 1
+    clients_connected = max(0, clients_connected - 1)
     logger.info(f"Client disconnected. Total clients: {clients_connected}")
 
 
@@ -239,40 +328,105 @@ def handle_disconnect():
 def handle_status_request():
     """Handle status update request"""
     try:
-        status_data = {
-            'bjorn_status': shared_data.bjornstatustext,
-            'bjorn_says': shared_data.bjornsays,
-            'target_count': shared_data.targetnbr,
-            'port_count': shared_data.portnbr,
-            'vulnerability_count': shared_data.vulnnbr,
-            'credential_count': shared_data.crednbr,
-        }
+        status_data = get_current_status()
         emit('status_update', status_data)
     except Exception as e:
         logger.error(f"Error handling status request: {e}")
+
+
+@socketio.on('request_logs')
+def handle_log_request():
+    """Handle request for recent logs"""
+    try:
+        logs = get_recent_logs()
+        emit('log_update', logs)
+    except Exception as e:
+        logger.error(f"Error sending logs: {e}")
+
+
+@socketio.on('request_network')
+def handle_network_request():
+    """Handle request for network data"""
+    try:
+        data = shared_data.read_data()
+        emit('network_update', data)
+    except Exception as e:
+        logger.error(f"Error sending network data: {e}")
+
+
+@socketio.on('request_credentials')
+def handle_credentials_request():
+    """Handle request for credentials data"""
+    try:
+        credentials = web_utils.get_all_credentials()
+        emit('credentials_update', credentials)
+    except Exception as e:
+        logger.error(f"Error sending credentials: {e}")
+
+
+@socketio.on('request_loot')
+def handle_loot_request():
+    """Handle request for loot data"""
+    try:
+        loot = web_utils.get_loot_data()
+        emit('loot_update', loot)
+    except Exception as e:
+        logger.error(f"Error sending loot data: {e}")
 
 
 # ============================================================================
 # BACKGROUND TASKS
 # ============================================================================
 
+def get_current_status():
+    """Get current status data"""
+    return {
+        'bjorn_status': shared_data.bjornstatustext,
+        'bjorn_status2': shared_data.bjornstatustext2,
+        'bjorn_says': shared_data.bjornsays,
+        'orchestrator_status': shared_data.bjornorch_status,
+        'target_count': shared_data.targetnbr,
+        'port_count': shared_data.portnbr,
+        'vulnerability_count': shared_data.vulnnbr,
+        'credential_count': shared_data.crednbr,
+        'data_count': shared_data.datanbr,
+        'wifi_connected': shared_data.wifi_connected,
+        'bluetooth_active': shared_data.bluetooth_active,
+        'pan_connected': shared_data.pan_connected,
+        'usb_active': shared_data.usb_active,
+        'manual_mode': shared_data.config.get('manual_mode', False),
+        'timestamp': datetime.now().isoformat()
+    }
+
+def get_recent_logs():
+    """Get recent log entries"""
+    logs = []
+    try:
+        log_file = shared_data.webconsolelog
+        if os.path.exists(log_file):
+            with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                lines = f.readlines()
+                # Return last 50 lines
+                logs = [line.strip() for line in lines[-50:] if line.strip()]
+    except Exception as e:
+        logger.error(f"Error reading logs: {e}")
+    return logs
+
 def broadcast_status_updates():
     """Broadcast status updates to all connected clients"""
+    log_counter = 0
     while not shared_data.webapp_should_exit:
         try:
             if clients_connected > 0:
-                status_data = {
-                    'bjorn_status': shared_data.bjornstatustext,
-                    'bjorn_status2': shared_data.bjornstatustext2,
-                    'bjorn_says': shared_data.bjornsays,
-                    'target_count': shared_data.targetnbr,
-                    'port_count': shared_data.portnbr,
-                    'vulnerability_count': shared_data.vulnnbr,
-                    'credential_count': shared_data.crednbr,
-                    'data_count': shared_data.datanbr,
-                    'timestamp': datetime.now().isoformat()
-                }
+                # Send status update
+                status_data = get_current_status()
                 socketio.emit('status_update', status_data)
+                
+                # Send logs every 5 cycles (10 seconds)
+                log_counter += 1
+                if log_counter % 5 == 0:
+                    logs = get_recent_logs()
+                    socketio.emit('log_update', logs)
             
             socketio.sleep(2)  # Update every 2 seconds
         except Exception as e:
