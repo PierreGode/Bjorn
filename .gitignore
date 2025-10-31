@@ -162,6 +162,11 @@ data/output/data_stolen/
 data/output/vulnerabilities/
 data/output/zombies/
 
+# Runtime data files (generated during execution)
+data/livestatus.csv
+data/netkb.csv
+data/logs/temp_log.txt
+
 # User dictionaries (may contain custom wordlists)
 data/input/dictionary/passwords.txt
 data/input/dictionary/users.txt
