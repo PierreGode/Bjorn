@@ -1109,6 +1109,18 @@ rsn_pairwise=CCMP
             self.ap_logger.debug("Creating dnsmasq configuration file...")
             config_content = f"""interface={self.ap_interface}
 dhcp-range=192.168.4.2,192.168.4.20,255.255.255.0,24h
+# Disable DNS server functionality to avoid port 53 conflicts
+port=0
+# Use alternative DHCP port if needed
+dhcp-authoritative
+# Bind only to the AP interface to avoid conflicts
+bind-interfaces
+# Log DHCP activity for debugging
+log-dhcp
+# Set gateway to the AP interface IP
+dhcp-option=3,{self.ap_ip}
+# Set DNS servers for clients (use public DNS)
+dhcp-option=6,8.8.8.8,8.8.4.4
 """
             
             with open('/tmp/bjorn/dnsmasq.conf', 'w') as f:
