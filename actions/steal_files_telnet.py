@@ -3,7 +3,12 @@ steal_files_telnet.py - This script connects to remote Telnet servers using prov
 """
 
 import os
-import telnetlib
+try:
+    import telnetlib
+except ImportError:
+    # telnetlib was removed in Python 3.13+, use fallback
+    print("telnetlib not available - telnet functionality disabled")
+    telnetlib = None
 import logging
 import time
 from rich.console import Console

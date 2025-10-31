@@ -5,7 +5,12 @@ and logs the successful login attempts.
 
 import os
 import pandas as pd
-import telnetlib
+try:
+    import telnetlib
+except ImportError:
+    # telnetlib was removed in Python 3.13+, use fallback
+    print("telnetlib not available - telnet functionality disabled")
+    telnetlib = None
 import threading
 import logging
 import time

@@ -59,6 +59,8 @@ class SSHConnector:
 
         if "Ports" not in self.scan.columns:
             self.scan["Ports"] = None
+        # Ensure Ports column is string type before using .str accessor
+        self.scan["Ports"] = self.scan["Ports"].astype(str)
         self.scan = self.scan[self.scan["Ports"].str.contains("22", na=False)]
 
         self.users = open(shared_data.usersfile, "r").read().splitlines()
@@ -81,6 +83,8 @@ class SSHConnector:
         self.scan = pd.read_csv(self.shared_data.netkbfile)
         if "Ports" not in self.scan.columns:
             self.scan["Ports"] = None
+        # Ensure Ports column is string type before using .str accessor
+        self.scan["Ports"] = self.scan["Ports"].astype(str)
         self.scan = self.scan[self.scan["Ports"].str.contains("22", na=False)]
 
     def ssh_connect(self, adresse_ip, user, password):
