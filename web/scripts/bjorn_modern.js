@@ -267,6 +267,7 @@ async function loadInitialData() {
 async function loadTabData(tabName) {
     switch(tabName) {
         case 'dashboard':
+            await loadDashboardData();
             await loadConsoleLogs();
             break;
         case 'network':
@@ -297,6 +298,22 @@ async function loadTabData(tabName) {
             await loadConfigData();
             break;
     }
+}
+
+async function loadDashboardData() {
+    try {
+        const data = await fetchAPI('/api/dashboard/stats');
+        updateDashboardStats(data);
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+    }
+}
+
+function updateDashboardStats(stats) {
+    updateElement('target-count', stats.target_count || 0);
+    updateElement('port-count', stats.port_count || 0);
+    updateElement('vuln-count', stats.vulnerability_count || 0);
+    updateElement('cred-count', stats.credential_count || 0);
 }
 
 async function loadNetworkData() {
@@ -2596,6 +2613,10 @@ window.refreshImages = refreshImages;
 window.loadSystemData = loadSystemData;
 window.sortProcesses = sortProcesses;
 window.refreshSystemStatus = refreshSystemStatus;
+
+// Dashboard Functions
+window.loadDashboardData = loadDashboardData;
+window.updateDashboardStats = updateDashboardStats;
 
 // NetKB Functions
 window.loadNetkbData = loadNetkbData;

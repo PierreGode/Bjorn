@@ -1759,6 +1759,121 @@ def format_uptime(seconds):
         return f"{minutes}m"
 
 # ============================================================================
+# DASHBOARD API ENDPOINTS
+# ============================================================================
+
+@app.route('/api/dashboard/stats')
+def get_dashboard_stats():
+    """Get dashboard statistics including counts from various sources"""
+    try:
+        stats = {
+            'target_count': 0,
+            'port_count': 0,
+            'vulnerability_count': 0,
+            'credential_count': 0
+        }
+        
+        # Get network scan results for target and port counts
+        scan_results_dir = getattr(shared_data, 'scan_results_dir', os.path.join('data', 'output', 'scan_results'))
+        if os.path.exists(scan_results_dir):
+            unique_hosts = set()
+            port_count = 0
+            
+            for filename in os.listdir(scan_results_dir):
+                if filename.endswith('.txt'):
+                    filepath = os.path.join(scan_results_dir, filename)
+                    try:
+                        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read()
+                            if content.strip():
+                                # Extract IP from filename
+                                ip_match = re.search(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', filename)
+                                if ip_match:
+                                    unique_hosts.add(ip_match.group())
+                                
+                                # Count ports
+                                for line in content.split('\n'):
+                                    if '/tcp' in line or '/udp' in line:
+                                        port_count += 1
+                    except Exception as e:
+                        continue
+            
+            stats['target_count'] = len(unique_hosts)
+            stats['port_count'] = port_count
+        
+        # Add example data if no real scan data exists
+        if stats['target_count'] == 0 and stats['port_count'] == 0:
+            stats['target_count'] = 2  # Match NetKB example hosts
+            stats['port_count'] = 2   # Match NetKB example ports
+        
+        # Get vulnerability count
+        vuln_results_dir = getattr(shared_data, 'vulnerabilities_dir', os.path.join('data', 'output', 'vulnerabilities'))
+        if os.path.exists(vuln_results_dir):
+            vuln_count = 0
+            for filename in os.listdir(vuln_results_dir):
+                if filename.endswith('.txt'):
+                    filepath = os.path.join(vuln_results_dir, filename)
+                    try:
+                        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read()
+                            if content.strip():
+                                # Count CVEs or files with vulnerability content
+                                cve_matches = re.findall(r'CVE-\d{4}-\d+', content)
+                                if cve_matches:
+                                    vuln_count += len(cve_matches)
+                                elif len(content.strip()) > 50:  # File has significant content
+                                    vuln_count += 1
+                    except Exception as e:
+                        continue
+            
+            # If no real vulnerabilities found, add example count for consistency with NetKB
+            if vuln_count == 0:
+                # Check if we have example NetKB data by seeing if there are any real scan files
+                real_data_exists = False
+                scan_results_dir = getattr(shared_data, 'scan_results_dir', os.path.join('data', 'output', 'scan_results'))
+                if os.path.exists(scan_results_dir):
+                    for filename in os.listdir(scan_results_dir):
+                        if filename.endswith('.txt'):
+                            filepath = os.path.join(scan_results_dir, filename)
+                            try:
+                                with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                                    if f.read().strip():
+                                        real_data_exists = True
+                                        break
+                            except:
+                                continue
+                
+                # If no real data exists, add example vulnerability count to match NetKB
+                if not real_data_exists:
+                    vuln_count = 1  # Match the example vulnerability in NetKB
+            
+            stats['vulnerability_count'] = vuln_count
+        
+        # Get credential count
+        cred_results_dir = getattr(shared_data, 'crackedpwd_dir', os.path.join('data', 'output', 'crackedpwd'))
+        if os.path.exists(cred_results_dir):
+            cred_count = 0
+            for filename in os.listdir(cred_results_dir):
+                if filename.endswith('.txt'):
+                    filepath = os.path.join(cred_results_dir, filename)
+                    try:
+                        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read()
+                            # Count lines with credential format (user:pass)
+                            for line in content.split('\n'):
+                                if ':' in line and line.strip():
+                                    cred_count += 1
+                    except Exception as e:
+                        continue
+            
+            stats['credential_count'] = cred_count
+        
+        return jsonify(stats)
+    except Exception as e:
+        logger.error(f"Error getting dashboard stats: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ============================================================================
 # NETKB (Network Knowledge Base) API ENDPOINTS
 # ============================================================================
 
