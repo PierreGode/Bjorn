@@ -266,6 +266,8 @@ install_dependencies() {
         "python3-sqlalchemy"
         "python3-pandas"
         "python3-numpy"
+        "hostapd"
+        "dnsmasq"
     )
     
     # Optional packages that may not be available in all distributions
