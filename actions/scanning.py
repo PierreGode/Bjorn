@@ -16,7 +16,18 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 from rich.progress import Progress
-from getmac import get_mac_address as gma
+try:
+    # Try the old import format first
+    from getmac import get_mac_address as gma
+except ImportError:
+    try:
+        # Try the new format
+        import getmac
+        gma = getmac.get_mac_address
+    except (ImportError, AttributeError):
+        # Final fallback
+        def gma(*args, **kwargs):
+            return "00:00:00:00:00:00"
 from shared import SharedData
 from logger import Logger
 import ipaddress
