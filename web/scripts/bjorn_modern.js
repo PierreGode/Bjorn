@@ -254,6 +254,9 @@ async function loadInitialData() {
         // Load initial console logs
         await loadConsoleLogs();
         
+        // Load initial Wi-Fi status
+        await refreshWifiStatus();
+        
         // Add welcome message to console
         addConsoleMessage('Bjorn Modern Web Interface Initialized', 'success');
         addConsoleMessage('Dashboard loaded successfully', 'info');
@@ -296,6 +299,7 @@ async function loadTabData(tabName) {
             break;
         case 'config':
             await loadConfigData();
+            await refreshWifiStatus();
             break;
     }
 }
@@ -600,6 +604,81 @@ async function rebootSystem() {
         console.error('Error rebooting system:', error);
         addConsoleMessage('Failed to initiate system reboot', 'error');
     }
+}
+
+// ============================================================================
+// WI-FI MANAGEMENT FUNCTIONS
+// ============================================================================
+
+async function startAPMode() {
+    if (!confirm('Start AP Mode?\n\nThis will:\n• Disconnect from current Wi-Fi\n• Start "Bjorn" access point\n• Enable 3-minute smart cycling\n• Allow Wi-Fi configuration via AP\n\nContinue?')) {
+        return;
+    }
+    
+    try {
+        addConsoleMessage('Starting AP Mode...', 'info');
+        updateWifiStatus('Starting AP Mode...', 'connecting');
+        
+        const data = await postAPI('/api/wifi/ap/enable', {});
+        
+        if (data.success) {
+            addConsoleMessage(`AP Mode started: ${data.ap_config.ssid}`, 'success');
+            updateWifiStatus(
+                `AP Mode Active: "${data.ap_config.ssid}" | ${data.ap_config.timeout}s timeout | Smart cycling enabled`,
+                'ap-mode'
+            );
+            
+            // Auto-refresh Wi-Fi status
+            setTimeout(refreshWifiStatus, 2000);
+        } else {
+            addConsoleMessage(`Failed to start AP Mode: ${data.message}`, 'error');
+            updateWifiStatus(`Failed to start AP Mode: ${data.message}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error starting AP mode:', error);
+        addConsoleMessage('Error starting AP Mode', 'error');
+        updateWifiStatus('Error starting AP Mode', 'error');
+    }
+}
+
+async function refreshWifiStatus() {
+    try {
+        const data = await fetchAPI('/api/wifi/status');
+        
+        if (data.ap_mode_active) {
+            updateWifiStatus(
+                `AP Mode Active: "${data.ap_ssid || 'Bjorn'}" | Connect to configure Wi-Fi`,
+                'ap-mode'
+            );
+            updateElement('wifi-status-indicator', 'AP Mode');
+            document.getElementById('wifi-status-indicator').className = 'text-sm px-2 py-1 rounded bg-orange-700 text-orange-300';
+        } else if (data.wifi_connected) {
+            updateWifiStatus(`Connected to: ${data.current_ssid || 'Wi-Fi Network'}`, 'connected');
+            updateElement('wifi-status-indicator', 'Connected');
+            document.getElementById('wifi-status-indicator').className = 'text-sm px-2 py-1 rounded bg-green-700 text-green-300';
+        } else {
+            updateWifiStatus('Wi-Fi disconnected', 'disconnected');
+            updateElement('wifi-status-indicator', 'Disconnected');
+            document.getElementById('wifi-status-indicator').className = 'text-sm px-2 py-1 rounded bg-red-700 text-red-300';
+        }
+        
+        updateElement('wifi-info', data.wifi_connected ? 
+            `Connected to: ${data.current_ssid || 'Unknown'}` : 
+            'No Wi-Fi connection');
+            
+    } catch (error) {
+        console.error('Error refreshing Wi-Fi status:', error);
+        updateWifiStatus('Error checking Wi-Fi status', 'error');
+        updateElement('wifi-status-indicator', 'Error');
+        document.getElementById('wifi-status-indicator').className = 'text-sm px-2 py-1 rounded bg-red-700 text-red-300';
+    }
+}
+
+function updateWifiStatus(message, type = '') {
+    // This function can be enhanced to show status messages in a notification area
+    // For now, we'll use console messages and update the UI elements
+    addConsoleMessage(message, type === 'error' ? 'error' : type === 'ap-mode' ? 'warning' : 'info');
 }
 
 async function loadConsoleLogs() {
@@ -2629,6 +2708,8 @@ window.checkForUpdatesQuiet = checkForUpdatesQuiet;
 window.performUpdate = performUpdate;
 window.restartService = restartService;
 window.rebootSystem = rebootSystem;
+window.startAPMode = startAPMode;
+window.refreshWifiStatus = refreshWifiStatus;
 window.updateManualPorts = updateManualPorts;
 window.executeManualAttack = executeManualAttack;
 window.startOrchestrator = startOrchestrator;
