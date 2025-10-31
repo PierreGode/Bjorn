@@ -622,6 +622,11 @@ async function loadConsoleLogs() {
 
 async function loadManualModeData() {
     try {
+        // Store current selections before reloading
+        const currentIp = document.getElementById('manual-ip-dropdown')?.value || '';
+        const currentPort = document.getElementById('manual-port-dropdown')?.value || '';
+        const currentAction = document.getElementById('manual-action-dropdown')?.value || '';
+        
         const data = await fetchAPI('/api/manual/targets');
         
         // Populate IP dropdown
@@ -633,6 +638,9 @@ async function loadManualModeData() {
                     const option = document.createElement('option');
                     option.value = target.ip;
                     option.textContent = `${target.ip} (${target.hostname})`;
+                    if (target.ip === currentIp) {
+                        option.selected = true;
+                    }
                     ipDropdown.appendChild(option);
                 });
             }
@@ -661,12 +669,27 @@ async function loadManualModeData() {
                 const option = document.createElement('option');
                 option.value = action;
                 option.textContent = action.toUpperCase() + ' Brute Force';
+                if (action === currentAction) {
+                    option.selected = true;
+                }
                 actionDropdown.appendChild(option);
             });
         }
         
         // Store targets data for updateManualPorts function
         window.manualTargetsData = data.targets || [];
+        
+        // Restore port selection if IP was selected
+        if (currentIp) {
+            updateManualPorts();
+            // Restore port selection after ports are populated
+            setTimeout(() => {
+                const portDropdown = document.getElementById('manual-port-dropdown');
+                if (portDropdown && currentPort) {
+                    portDropdown.value = currentPort;
+                }
+            }, 50);
+        }
         
     } catch (error) {
         console.error('Error loading manual mode data:', error);
@@ -925,9 +948,12 @@ function updateDashboardStatus(data) {
     const manualControls = document.getElementById('manual-controls');
     if (manualControls) {
         if (isManualMode) {
+            const wasHidden = manualControls.classList.contains('hidden');
             manualControls.classList.remove('hidden');
-            // Load manual mode data when showing controls
-            loadManualModeData();
+            // Only load manual mode data when first showing controls, not on every status update
+            if (wasHidden) {
+                loadManualModeData();
+            }
         } else {
             manualControls.classList.add('hidden');
         }
