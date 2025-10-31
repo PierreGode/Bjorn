@@ -228,6 +228,9 @@ install_dependencies() {
         "libi2c-dev"
         "libatlas-base-dev"
         "build-essential"
+        "python3-sqlalchemy"
+        "python3-pandas"
+        "python3-numpy"
     )
     
     # Install packages
@@ -321,7 +324,40 @@ setup_bjorn() {
     # Install requirements with --break-system-packages flag
     log "INFO" "Installing Python requirements..."
     
-    pip3 install -r requirements.txt --break-system-packages
+    # Install packages that can fail separately to handle errors
+    log "INFO" "Installing core Python packages..."
+    
+    # Try to install RPi.GPIO and spidev
+    pip3 install --break-system-packages RPi.GPIO==0.7.1 spidev==3.5 || {
+        log "WARNING" "Failed to install RPi.GPIO or spidev, trying without version pinning..."
+        pip3 install --break-system-packages RPi.GPIO spidev
+    }
+    
+    # Install Pillow - use system package if pip fails
+    pip3 install --break-system-packages "Pillow>=10.0.0" || {
+        log "WARNING" "Pillow pip install failed, using system package python3-pil"
+        apt-get install -y python3-pil
+    }
+    
+    # Install numpy and pandas - prefer system packages but fallback to pip
+    log "INFO" "Installing numpy and pandas..."
+    pip3 install --break-system-packages "numpy>=1.24.0" "pandas>=2.0.0" || {
+        log "WARNING" "Pandas/numpy pip install failed, relying on system packages"
+    }
+    
+    # Install remaining packages from requirements.txt
+    log "INFO" "Installing remaining Python packages..."
+    pip3 install --break-system-packages \
+        "rich>=13.0.0" \
+        "netifaces==0.11.0" \
+        "ping3>=4.0.0" \
+        "get-mac>=0.9.0" \
+        "paramiko>=3.0.0" \
+        "smbprotocol>=1.10.0" \
+        "pysmb>=1.2.0" \
+        "pymysql>=1.0.0" \
+        "python-nmap>=0.7.0"
+    
     check_success "Installed Python requirements"
 
     # Set correct permissions

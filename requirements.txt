@@ -11,5 +11,5 @@ paramiko>=3.0.0
 smbprotocol>=1.10.0
 pysmb>=1.2.0
 pymysql>=1.0.0
-sqlalchemy>=2.0.0
 python-nmap>=0.7.0
+# sqlalchemy - Install via apt: sudo apt-get install python3-sqlalchemy
