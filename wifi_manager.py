@@ -30,6 +30,9 @@ class WiFiManager:
         self.shared_data = shared_data
         self.logger = Logger(name="WiFiManager", level=logging.INFO)
         
+        # Setup dedicated AP mode logging
+        self.setup_ap_logger()
+        
         # State management
         self.wifi_connected = False
         self.ap_mode_active = False
@@ -104,6 +107,53 @@ class WiFiManager:
         except Exception as e:
             self.logger.error(f"Error saving Wi-Fi config: {e}")
     
+    def setup_ap_logger(self):
+        """Setup dedicated logger for AP mode operations"""
+        try:
+            # Create a dedicated logger for AP mode
+            self.ap_logger = logging.getLogger('WiFiManager_AP')
+            self.ap_logger.setLevel(logging.DEBUG)
+            
+            # Remove existing handlers to avoid duplication
+            for handler in self.ap_logger.handlers[:]:
+                self.ap_logger.removeHandler(handler)
+            
+            # Create file handler for /var/log/ap.log
+            try:
+                ap_log_file = '/var/log/ap.log'
+                # Ensure log directory exists
+                os.makedirs(os.path.dirname(ap_log_file), exist_ok=True)
+                file_handler = logging.FileHandler(ap_log_file)
+            except (PermissionError, OSError):
+                # Fallback to local log file if /var/log is not writable
+                ap_log_file = os.path.join(self.shared_data.logsdir, 'ap.log')
+                os.makedirs(os.path.dirname(ap_log_file), exist_ok=True)
+                file_handler = logging.FileHandler(ap_log_file)
+            
+            # Create formatter for detailed logging
+            formatter = logging.Formatter(
+                '%(asctime)s - %(levelname)s - %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S'
+            )
+            file_handler.setFormatter(formatter)
+            
+            # Add handler to logger
+            self.ap_logger.addHandler(file_handler)
+            
+            # Prevent propagation to avoid duplicate logging
+            self.ap_logger.propagate = False
+            
+            # Log startup message
+            self.ap_logger.info("="*50)
+            self.ap_logger.info("AP Mode Logger Initialized")
+            self.ap_logger.info(f"Log file: {ap_log_file}")
+            self.ap_logger.info("="*50)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to setup AP logger: {e}")
+            # Create a fallback logger that writes to the main logger
+            self.ap_logger = self.logger
+    
     def start(self):
         """Start the Wi-Fi management system"""
         self.logger.info("Starting Wi-Fi Manager...")
@@ -122,6 +172,7 @@ class WiFiManager:
     def stop(self):
         """Stop the Wi-Fi management system"""
         self.logger.info("Stopping Wi-Fi Manager...")
+        self.ap_logger.info("WiFi Manager stopping - shutting down AP logger")
         
         # Save current connection state before stopping
         current_ssid = self.get_current_ssid()
@@ -138,6 +189,16 @@ class WiFiManager:
         
         if self.monitoring_thread and self.monitoring_thread.is_alive():
             self.monitoring_thread.join(timeout=5)
+        
+        # Close AP logger
+        try:
+            if hasattr(self, 'ap_logger') and hasattr(self.ap_logger, 'handlers'):
+                self.ap_logger.info("AP logger shutting down")
+                for handler in self.ap_logger.handlers[:]:
+                    handler.close()
+                    self.ap_logger.removeHandler(handler)
+        except Exception as e:
+            self.logger.warning(f"Error closing AP logger: {e}")
 
     def _save_connection_state(self, ssid=None, connected=False):
         """Save current connection state to help with service restarts"""
@@ -396,12 +457,15 @@ class WiFiManager:
                     # Check if AP should be stopped due to inactivity or timeout
                     if self.should_stop_idle_ap() and self.ap_cycle_enabled:
                         self.logger.info("Stopping AP mode - switching to reconnection attempt")
+                        self.ap_logger.info("Stopping AP due to idle timeout/cycling, entering reconnection phase")
                         self.stop_ap_mode()
                         self.last_ap_stop_time = time.time()
                         
                         # Try to connect to autoconnect networks
+                        self.ap_logger.info("Attempting to connect to autoconnect networks...")
                         if not self.try_autoconnect_networks():
                             self.logger.info("No autoconnect networks available, will retry in cycle")
+                            self.ap_logger.info("No autoconnect networks available, will restart AP after timeout")
                 
                 # Handle reconnection attempts when in cycling mode
                 if (self.cycling_mode and not self.ap_mode_active and not self.wifi_connected 
@@ -411,6 +475,8 @@ class WiFiManager:
                     
                     if time_since_ap_stop >= self.reconnect_interval:
                         self.logger.info("Reconnection timeout reached - restarting AP mode")
+                        self.ap_logger.info(f"Reconnection timeout ({self.reconnect_interval}s) reached - restarting AP mode")
+                        self.ap_logger.info("Starting new AP cycle...")
                         self.start_ap_mode_with_timeout()
                 
                 # Handle initial connection timeout (for startup)
@@ -423,6 +489,8 @@ class WiFiManager:
                         
                         if self.shared_data.config.get('wifi_auto_ap_fallback', True):
                             self.logger.info("Connection timeout reached - starting AP cycling mode")
+                            self.ap_logger.info("Initial connection timeout reached - starting AP cycling mode")
+                            self.ap_logger.info(f"Connection timeout was {self.connection_timeout}s")
                             self.start_ap_mode_with_timeout()
                 
                 # Update current SSID if connected
@@ -722,41 +790,71 @@ class WiFiManager:
             return 0
         
         try:
+            self.ap_logger.debug("Checking for connected AP clients...")
+            
             # Method 1: Check hostapd_cli if available
             result = subprocess.run(['hostapd_cli', '-i', self.ap_interface, 'list_sta'], 
                                   capture_output=True, text=True, timeout=5)
             if result.returncode == 0:
                 clients = [line.strip() for line in result.stdout.strip().split('\n') if line.strip()]
                 client_count = len(clients)
+                
+                # Log client changes
+                if client_count != getattr(self, 'last_client_count', 0):
+                    if client_count > 0:
+                        self.ap_logger.info(f"AP clients detected: {client_count}")
+                        self.ap_logger.info(f"Connected clients: {clients}")
+                    else:
+                        self.ap_logger.info("No clients connected to AP")
+                    self.last_client_count = client_count
+                
                 self.ap_clients_count = client_count
                 self.ap_clients_connected = client_count > 0
                 return client_count
             
             # Method 2: Check DHCP leases
+            self.ap_logger.debug("Hostapd_cli not available, checking DHCP leases...")
             dhcp_leases_file = '/var/lib/dhcp/dhcpd.leases'
             if os.path.exists(dhcp_leases_file):
                 with open(dhcp_leases_file, 'r') as f:
                     content = f.read()
                     # Count active leases (simplified check)
                     active_leases = content.count('binding state active')
+                    
+                    if active_leases != getattr(self, 'last_client_count', 0):
+                        self.ap_logger.info(f"DHCP active leases: {active_leases}")
+                        self.last_client_count = active_leases
+                    
                     self.ap_clients_count = active_leases
                     self.ap_clients_connected = active_leases > 0
                     return active_leases
             
             # Method 3: Check ARP table for AP subnet
+            self.ap_logger.debug("DHCP leases not available, checking ARP table...")
             result = subprocess.run(['arp', '-a'], capture_output=True, text=True, timeout=5)
             if result.returncode == 0:
                 # Count IPs in AP subnet (192.168.4.x)
                 ap_clients = [line for line in result.stdout.split('\n') if '192.168.4.' in line]
                 client_count = len(ap_clients)
+                
+                if client_count != getattr(self, 'last_client_count', 0):
+                    if client_count > 0:
+                        self.ap_logger.info(f"ARP table shows {client_count} clients in AP subnet")
+                        self.ap_logger.debug(f"ARP entries: {ap_clients}")
+                    else:
+                        self.ap_logger.debug("No clients found in ARP table")
+                    self.last_client_count = client_count
+                
                 self.ap_clients_count = client_count
                 self.ap_clients_connected = client_count > 0
                 return client_count
             
+            self.ap_logger.warning("All client detection methods failed")
             return 0
             
         except Exception as e:
             self.logger.warning(f"Error checking AP clients: {e}")
+            self.ap_logger.warning(f"Exception checking AP clients: {e}")
             return 0
 
     def should_stop_idle_ap(self):
@@ -770,12 +868,23 @@ class WiFiManager:
         # If no clients have connected and idle timeout reached
         if not self.ap_clients_connected and ap_running_time > self.ap_idle_timeout:
             self.logger.info(f"AP idle timeout reached ({self.ap_idle_timeout}s) with no clients")
+            self.ap_logger.info(f"AP idle timeout reached: {self.ap_idle_timeout}s with no clients connected")
+            self.ap_logger.info(f"AP has been running for {ap_running_time:.1f} seconds")
+            self.ap_logger.info("Initiating AP shutdown due to inactivity")
             return True
         
         # If AP has been running for maximum timeout regardless of clients
         if ap_running_time > self.ap_timeout * 2:  # Extended timeout for safety
             self.logger.info(f"AP maximum timeout reached ({self.ap_timeout * 2}s)")
+            self.ap_logger.info(f"AP maximum timeout reached: {self.ap_timeout * 2}s")
+            self.ap_logger.info(f"AP has been running for {ap_running_time:.1f} seconds")
+            self.ap_logger.info(f"Clients connected: {self.ap_clients_connected}")
+            self.ap_logger.info("Initiating AP shutdown due to maximum timeout")
             return True
+        
+        # Log periodic status if AP is running
+        if int(ap_running_time) % 60 == 0:  # Log every minute
+            self.ap_logger.info(f"AP running for {ap_running_time:.0f}s, clients: {self.ap_clients_count}, connected: {self.ap_clients_connected}")
         
         return False
 
@@ -837,12 +946,16 @@ class WiFiManager:
 
     def start_ap_mode_with_timeout(self):
         """Start AP mode with smart timeout management"""
+        self.ap_logger.info("Starting AP mode with timeout management")
         if self.start_ap_mode():
             self.ap_mode_start_time = time.time()
             self.cycling_mode = True
             self.logger.info(f"AP mode started with {self.ap_timeout}s timeout")
+            self.ap_logger.info(f"AP mode started with {self.ap_timeout}s timeout in cycling mode")
             return True
-        return False
+        else:
+            self.ap_logger.error("Failed to start AP mode with timeout")
+            return False
 
     def enable_ap_mode_from_web(self):
         """Enable AP mode from web interface - starts the cycling behavior"""
@@ -862,50 +975,81 @@ class WiFiManager:
         """Start Access Point mode"""
         if self.ap_mode_active:
             self.logger.info("AP mode already active")
+            self.ap_logger.info("AP mode start requested but already active")
             return True
         
         try:
             self.logger.info(f"Starting AP mode: {self.ap_ssid}")
+            self.ap_logger.info(f"Starting AP mode: SSID={self.ap_ssid}, Interface={self.ap_interface}")
+            self.ap_logger.info(f"AP Configuration: IP={self.ap_ip}, Subnet={self.ap_subnet}")
             
             # Create hostapd configuration
+            self.ap_logger.info("Creating hostapd configuration...")
             if not self._create_hostapd_config():
+                self.ap_logger.error("Failed to create hostapd configuration")
                 return False
             
             # Create dnsmasq configuration
+            self.ap_logger.info("Creating dnsmasq configuration...")
             if not self._create_dnsmasq_config():
+                self.ap_logger.error("Failed to create dnsmasq configuration")
                 return False
             
             # Configure network interface
+            self.ap_logger.info("Configuring network interface...")
             if not self._configure_ap_interface():
+                self.ap_logger.error("Failed to configure network interface")
                 return False
             
             # Start services
+            self.ap_logger.info("Starting AP services...")
             if self._start_ap_services():
                 self.ap_mode_active = True
                 self.ap_mode_start_time = time.time()  # Track start time
                 self.logger.info("AP mode started successfully")
+                self.ap_logger.info("AP mode started successfully")
+                self.ap_logger.info(f"AP started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                self.ap_logger.info(f"Access Point '{self.ap_ssid}' is now available")
                 return True
             else:
+                self.ap_logger.error("Failed to start AP services")
                 self._cleanup_ap_mode()
                 return False
                 
         except Exception as e:
             self.logger.error(f"Error starting AP mode: {e}")
+            self.ap_logger.error(f"Exception during AP mode startup: {e}")
+            self.ap_logger.error(f"Error type: {type(e).__name__}")
+            import traceback
+            self.ap_logger.error(f"Traceback: {traceback.format_exc()}")
             self._cleanup_ap_mode()
             return False
     
     def stop_ap_mode(self):
         """Stop Access Point mode"""
         if not self.ap_mode_active:
+            self.ap_logger.info("AP mode stop requested but not currently active")
             return True
         
         try:
             self.logger.info("Stopping AP mode...")
+            self.ap_logger.info("Stopping AP mode...")
+            
+            # Calculate uptime
+            if self.ap_mode_start_time:
+                uptime = time.time() - self.ap_mode_start_time
+                self.ap_logger.info(f"AP mode uptime: {uptime:.1f} seconds ({uptime/60:.1f} minutes)")
+            
+            # Log client statistics
+            if hasattr(self, 'ap_clients_count'):
+                self.ap_logger.info(f"Total clients connected during session: {self.ap_clients_count}")
             
             # Stop services
+            self.ap_logger.info("Stopping AP services...")
             self._stop_ap_services()
             
             # Cleanup interface
+            self.ap_logger.info("Cleaning up network interface...")
             self._cleanup_ap_interface()
             
             self.ap_mode_active = False
@@ -913,15 +1057,22 @@ class WiFiManager:
             self.ap_clients_connected = False
             self.ap_clients_count = 0
             self.logger.info("AP mode stopped")
+            self.ap_logger.info("AP mode stopped successfully")
+            self.ap_logger.info(f"AP stopped at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             return True
             
         except Exception as e:
             self.logger.error(f"Error stopping AP mode: {e}")
+            self.ap_logger.error(f"Exception during AP mode shutdown: {e}")
+            self.ap_logger.error(f"Error type: {type(e).__name__}")
+            import traceback
+            self.ap_logger.error(f"Traceback: {traceback.format_exc()}")
             return False
     
     def _create_hostapd_config(self):
         """Create hostapd configuration file"""
         try:
+            self.ap_logger.debug("Creating hostapd configuration file...")
             config_content = f"""interface={self.ap_interface}
 driver=nl80211
 ssid={self.ap_ssid}
@@ -943,15 +1094,19 @@ rsn_pairwise=CCMP
                 f.write(config_content)
             
             self.logger.info("Created hostapd configuration")
+            self.ap_logger.info("Created hostapd configuration at /tmp/bjorn/hostapd.conf")
+            self.ap_logger.debug(f"Hostapd config content:\n{config_content}")
             return True
             
         except Exception as e:
             self.logger.error(f"Error creating hostapd config: {e}")
+            self.ap_logger.error(f"Error creating hostapd config: {e}")
             return False
     
     def _create_dnsmasq_config(self):
         """Create dnsmasq configuration file"""
         try:
+            self.ap_logger.debug("Creating dnsmasq configuration file...")
             config_content = f"""interface={self.ap_interface}
 dhcp-range=192.168.4.2,192.168.4.20,255.255.255.0,24h
 """
@@ -960,91 +1115,150 @@ dhcp-range=192.168.4.2,192.168.4.20,255.255.255.0,24h
                 f.write(config_content)
             
             self.logger.info("Created dnsmasq configuration")
+            self.ap_logger.info("Created dnsmasq configuration at /tmp/bjorn/dnsmasq.conf")
+            self.ap_logger.debug(f"Dnsmasq config content:\n{config_content}")
             return True
             
         except Exception as e:
             self.logger.error(f"Error creating dnsmasq config: {e}")
+            self.ap_logger.error(f"Error creating dnsmasq config: {e}")
             return False
     
     def _configure_ap_interface(self):
         """Configure network interface for AP mode"""
         try:
+            self.ap_logger.info(f"Configuring interface {self.ap_interface} for AP mode")
+            
             # Stop NetworkManager from managing the interface
-            subprocess.run(['sudo', 'nmcli', 'dev', 'set', self.ap_interface, 'managed', 'no'], 
-                         capture_output=True, timeout=10)
+            self.ap_logger.debug("Setting NetworkManager to not manage interface")
+            result = subprocess.run(['sudo', 'nmcli', 'dev', 'set', self.ap_interface, 'managed', 'no'], 
+                         capture_output=True, text=True, timeout=10)
+            if result.returncode != 0:
+                self.ap_logger.warning(f"NetworkManager command failed: {result.stderr}")
             
             # Configure IP address
-            subprocess.run(['sudo', 'ip', 'addr', 'flush', 'dev', self.ap_interface], 
-                         capture_output=True, timeout=10)
-            subprocess.run(['sudo', 'ip', 'addr', 'add', f'{self.ap_ip}/24', 'dev', self.ap_interface], 
-                         capture_output=True, timeout=10)
-            subprocess.run(['sudo', 'ip', 'link', 'set', 'dev', self.ap_interface, 'up'], 
-                         capture_output=True, timeout=10)
+            self.ap_logger.debug("Flushing existing IP addresses")
+            result = subprocess.run(['sudo', 'ip', 'addr', 'flush', 'dev', self.ap_interface], 
+                         capture_output=True, text=True, timeout=10)
+            if result.returncode != 0:
+                self.ap_logger.warning(f"IP flush failed: {result.stderr}")
+            
+            self.ap_logger.debug(f"Adding IP address {self.ap_ip}/24")
+            result = subprocess.run(['sudo', 'ip', 'addr', 'add', f'{self.ap_ip}/24', 'dev', self.ap_interface], 
+                         capture_output=True, text=True, timeout=10)
+            if result.returncode != 0:
+                self.ap_logger.error(f"Failed to add IP address: {result.stderr}")
+                return False
+            
+            self.ap_logger.debug("Bringing interface up")
+            result = subprocess.run(['sudo', 'ip', 'link', 'set', 'dev', self.ap_interface, 'up'], 
+                         capture_output=True, text=True, timeout=10)
+            if result.returncode != 0:
+                self.ap_logger.error(f"Failed to bring interface up: {result.stderr}")
+                return False
             
             self.logger.info("Configured AP interface")
+            self.ap_logger.info(f"Interface {self.ap_interface} configured successfully with IP {self.ap_ip}")
             return True
             
         except Exception as e:
             self.logger.error(f"Error configuring AP interface: {e}")
+            self.ap_logger.error(f"Exception configuring AP interface: {e}")
             return False
     
     def _start_ap_services(self):
         """Start hostapd and dnsmasq services"""
         try:
+            self.ap_logger.info("Starting hostapd service...")
             # Start hostapd
             self.hostapd_process = subprocess.Popen(['sudo', 'hostapd', '/tmp/bjorn/hostapd.conf'],
                                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
+            self.ap_logger.debug(f"Hostapd process started with PID: {self.hostapd_process.pid}")
             time.sleep(2)  # Give hostapd time to start
             
             if self.hostapd_process.poll() is not None:
+                stdout, stderr = self.hostapd_process.communicate()
                 self.logger.error("hostapd failed to start")
+                self.ap_logger.error("hostapd failed to start")
+                self.ap_logger.error(f"Hostapd stdout: {stdout.decode()}")
+                self.ap_logger.error(f"Hostapd stderr: {stderr.decode()}")
                 return False
             
+            self.ap_logger.info("Hostapd started successfully")
+            
+            self.ap_logger.info("Starting dnsmasq service...")
             # Start dnsmasq
             self.dnsmasq_process = subprocess.Popen(['sudo', 'dnsmasq', '-C', '/tmp/bjorn/dnsmasq.conf', '-d'],
                                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
+            self.ap_logger.debug(f"Dnsmasq process started with PID: {self.dnsmasq_process.pid}")
             time.sleep(1)  # Give dnsmasq time to start
             
             if self.dnsmasq_process.poll() is not None:
+                stdout, stderr = self.dnsmasq_process.communicate()
                 self.logger.error("dnsmasq failed to start")
+                self.ap_logger.error("dnsmasq failed to start")
+                self.ap_logger.error(f"Dnsmasq stdout: {stdout.decode()}")
+                self.ap_logger.error(f"Dnsmasq stderr: {stderr.decode()}")
                 return False
             
+            self.ap_logger.info("Dnsmasq started successfully")
             self.logger.info("AP services started")
+            self.ap_logger.info("All AP services started successfully")
             return True
             
         except Exception as e:
             self.logger.error(f"Error starting AP services: {e}")
+            self.ap_logger.error(f"Exception starting AP services: {e}")
             return False
     
     def _stop_ap_services(self):
         """Stop hostapd and dnsmasq services"""
         try:
+            self.ap_logger.info("Stopping AP services...")
+            
             # Stop hostapd
             if hasattr(self, 'hostapd_process') and self.hostapd_process:
+                self.ap_logger.debug(f"Terminating hostapd process (PID: {self.hostapd_process.pid})")
                 self.hostapd_process.terminate()
                 try:
                     self.hostapd_process.wait(timeout=5)
+                    self.ap_logger.debug("Hostapd terminated gracefully")
                 except subprocess.TimeoutExpired:
+                    self.ap_logger.warning("Hostapd did not terminate gracefully, killing...")
                     self.hostapd_process.kill()
+                    self.ap_logger.debug("Hostapd killed")
             
             # Stop dnsmasq
             if hasattr(self, 'dnsmasq_process') and self.dnsmasq_process:
+                self.ap_logger.debug(f"Terminating dnsmasq process (PID: {self.dnsmasq_process.pid})")
                 self.dnsmasq_process.terminate()
                 try:
                     self.dnsmasq_process.wait(timeout=5)
+                    self.ap_logger.debug("Dnsmasq terminated gracefully")
                 except subprocess.TimeoutExpired:
+                    self.ap_logger.warning("Dnsmasq did not terminate gracefully, killing...")
                     self.dnsmasq_process.kill()
+                    self.ap_logger.debug("Dnsmasq killed")
             
             # Kill any remaining processes
-            subprocess.run(['sudo', 'pkill', 'hostapd'], capture_output=True)
-            subprocess.run(['sudo', 'pkill', 'dnsmasq'], capture_output=True)
+            self.ap_logger.debug("Killing any remaining hostapd processes...")
+            result = subprocess.run(['sudo', 'pkill', 'hostapd'], capture_output=True, text=True)
+            if result.returncode == 0:
+                self.ap_logger.debug("Additional hostapd processes killed")
+            
+            self.ap_logger.debug("Killing any remaining dnsmasq processes...")
+            result = subprocess.run(['sudo', 'pkill', 'dnsmasq'], capture_output=True, text=True)
+            if result.returncode == 0:
+                self.ap_logger.debug("Additional dnsmasq processes killed")
             
             self.logger.info("AP services stopped")
+            self.ap_logger.info("All AP services stopped successfully")
             
         except Exception as e:
             self.logger.error(f"Error stopping AP services: {e}")
+            self.ap_logger.error(f"Exception stopping AP services: {e}")
     
     def _cleanup_ap_interface(self):
         """Cleanup AP interface configuration"""
