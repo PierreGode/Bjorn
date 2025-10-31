@@ -203,6 +203,13 @@ function setupAutoRefresh() {
             socket.emit('request_loot');
         }
     }, 20000); // Every 20 seconds
+    
+    // Set up console log refreshing (fallback when WebSocket is not working)
+    autoRefreshIntervals.console = setInterval(() => {
+        if (currentTab === 'dashboard') {
+            loadConsoleLogs();
+        }
+    }, 5000); // Every 5 seconds when on dashboard
 }
 
 function initializeMobileMenu() {
@@ -227,6 +234,14 @@ async function loadInitialData() {
         if (status) {
             updateDashboardStatus(status);
         }
+        
+        // Load initial console logs
+        await loadConsoleLogs();
+        
+        // Add welcome message to console
+        addConsoleMessage('Bjorn Modern Web Interface Initialized', 'success');
+        addConsoleMessage('Dashboard loaded successfully', 'info');
+        
     } catch (error) {
         console.error('Error loading initial data:', error);
         addConsoleMessage('Error loading initial data', 'error');
@@ -235,6 +250,9 @@ async function loadInitialData() {
 
 async function loadTabData(tabName) {
     switch(tabName) {
+        case 'dashboard':
+            await loadConsoleLogs();
+            break;
         case 'network':
             await loadNetworkData();
             break;
@@ -286,6 +304,20 @@ async function loadConfigData() {
         displayConfigForm(config);
     } catch (error) {
         console.error('Error loading config:', error);
+    }
+}
+
+async function loadConsoleLogs() {
+    try {
+        const data = await fetchAPI('/api/logs');
+        if (data && data.logs) {
+            updateConsole(data.logs);
+        }
+    } catch (error) {
+        console.error('Error loading console logs:', error);
+        // Add fallback console messages if log loading fails
+        addConsoleMessage('Unable to load historical logs from server', 'warning');
+        addConsoleMessage('Console will show new messages as they occur', 'info');
     }
 }
 
@@ -401,17 +433,37 @@ function addConsoleMessage(message, type = 'info') {
 }
 
 function updateConsole(logs) {
-    if (!logs || !Array.isArray(logs)) return;
+    if (!logs || !Array.isArray(logs)) {
+        // If no logs available, add informational messages
+        if (consoleBuffer.length === 0) {
+            addConsoleMessage('No historical logs available', 'warning');
+            addConsoleMessage('New activity will appear here as it occurs', 'info');
+        }
+        return;
+    }
+    
+    // If logs are empty array, provide user feedback
+    if (logs.length === 0) {
+        if (consoleBuffer.length === 0) {
+            addConsoleMessage('No recent activity logged', 'info');
+            addConsoleMessage('Waiting for new events...', 'info');
+        }
+        return;
+    }
     
     // Clear existing buffer and add new logs
     consoleBuffer = [];
     
     logs.forEach(log => {
+        // Skip empty lines
+        if (!log.trim()) return;
+        
         let type = 'info';
-        if (log.includes('ERROR')) type = 'error';
-        else if (log.includes('WARN')) type = 'warning';
-        else if (log.includes('INFO')) type = 'info';
-        else if (log.includes('DEBUG')) type = 'info';
+        if (log.includes('ERROR') || log.includes('Error') || log.includes('error')) type = 'error';
+        else if (log.includes('WARN') || log.includes('Warning') || log.includes('warning')) type = 'warning';
+        else if (log.includes('INFO') || log.includes('Info')) type = 'info';
+        else if (log.includes('DEBUG') || log.includes('Debug')) type = 'info';
+        else if (log.includes('SUCCESS') || log.includes('Success')) type = 'success';
         
         const timestamp = new Date().toLocaleTimeString();
         const colors = {
@@ -423,7 +475,7 @@ function updateConsole(logs) {
         
         consoleBuffer.push({
             timestamp,
-            message: log,
+            message: log.trim(),
             type,
             colorClass: colors[type]
         });
@@ -781,3 +833,13 @@ function setupEpaperAutoRefresh() {
         }
     }, 5000); // Refresh every 5 seconds when on e-paper tab
 }
+
+// ============================================================================
+// GLOBAL FUNCTION EXPORTS (for HTML onclick handlers)
+// ============================================================================
+
+// Make functions available globally for HTML onclick handlers
+window.loadConsoleLogs = loadConsoleLogs;
+window.clearConsole = clearConsole;
+window.refreshEpaperDisplay = refreshEpaperDisplay;
+window.toggleEpaperSize = toggleEpaperSize;
