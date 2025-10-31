@@ -475,13 +475,21 @@ setup_bjorn() {
         log "WARNING" "Modern webapp files not found, using default configuration"
     fi
 
-    # Set correct permissions
+    # Set correct permissions and ownership
     chown -R $BJORN_USER:$BJORN_USER /home/$BJORN_USER/Bjorn
     chmod -R 755 /home/$BJORN_USER/Bjorn
     
-    # Make utility scripts executable
+    # Make utility scripts executable with proper ownership
     chmod +x $BJORN_PATH/switch_webapp.sh 2>/dev/null || true
     chmod +x $BJORN_PATH/kill_port_8000.sh 2>/dev/null || true
+    chmod +x $BJORN_PATH/update_bjorn.sh 2>/dev/null || true
+    chmod +x $BJORN_PATH/quick_update.sh 2>/dev/null || true
+    chmod +x $BJORN_PATH/uninstall_bjorn.sh 2>/dev/null || true
+    chmod +x $BJORN_PATH/wifi_fix.sh 2>/dev/null || true
+    chmod +x $BJORN_PATH/install_modern_webapp.sh 2>/dev/null || true
+    
+    # Ensure bjorn user owns all script files
+    chown $BJORN_USER:$BJORN_USER $BJORN_PATH/*.sh 2>/dev/null || true
     
     # Add bjorn user to necessary groups
     usermod -a -G spi,gpio,i2c $BJORN_USER
@@ -504,6 +512,7 @@ if [ -n "$PIDS" ]; then
 fi
 EOF
     chmod +x $BJORN_PATH/kill_port_8000.sh
+    chown bjorn:bjorn $BJORN_PATH/kill_port_8000.sh
 
     # Create BJORN service
     cat > /etc/systemd/system/bjorn.service << EOF

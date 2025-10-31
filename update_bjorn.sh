@@ -69,6 +69,10 @@ echo -e "${BLUE}Step 6: Setting correct permissions...${NC}"
 chown -R bjorn:bjorn "$BJORN_PATH"
 chmod +x "$BJORN_PATH"/*.sh 2>/dev/null || true
 
+# Ensure specific critical scripts are executable
+chmod +x "$BJORN_PATH/kill_port_8000.sh" 2>/dev/null || true
+chmod +x "$BJORN_PATH/update_bjorn.sh" 2>/dev/null || true
+
 echo -e "${BLUE}Step 7: Starting Bjorn service...${NC}"
 systemctl start bjorn.service
 
