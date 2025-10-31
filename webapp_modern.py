@@ -15,6 +15,7 @@ import json
 import signal
 import logging
 import threading
+import time
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request, send_from_directory
 from flask_socketio import SocketIO, emit
@@ -198,6 +199,54 @@ def get_logs():
         return jsonify({'logs': []})
     except Exception as e:
         logger.error(f"Error getting logs: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/epaper-display')
+def get_epaper_display():
+    """Get current e-paper display image as base64"""
+    try:
+        from PIL import Image
+        import base64
+        import io
+        
+        # Look for the current display image saved by display.py
+        display_image_path = os.path.join(shared_data.webdir, "screen.png")
+        
+        if os.path.exists(display_image_path):
+            # Read and encode the image
+            with Image.open(display_image_path) as img:
+                # Convert to RGB if needed
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                
+                # Save to bytes
+                img_byte_arr = io.BytesIO()
+                img.save(img_byte_arr, format='PNG')
+                img_byte_arr = img_byte_arr.getvalue()
+                
+                # Encode to base64
+                img_base64 = base64.b64encode(img_byte_arr).decode('utf-8')
+                
+                return jsonify({
+                    'image': f"data:image/png;base64,{img_base64}",
+                    'timestamp': int(os.path.getctime(display_image_path)),
+                    'width': img.width,
+                    'height': img.height,
+                    'status_text': safe_str(shared_data.bjornstatustext),
+                    'status_text2': safe_str(shared_data.bjornstatustext2)
+                })
+        
+        # If no image found, return status only
+        return jsonify({
+            'image': None,
+            'message': 'No e-paper display image available',
+            'timestamp': int(time.time()),
+            'status_text': safe_str(shared_data.bjornstatustext),
+            'status_text2': safe_str(shared_data.bjornstatustext2)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting e-paper display: {e}")
         return jsonify({'error': str(e)}), 500
 
 

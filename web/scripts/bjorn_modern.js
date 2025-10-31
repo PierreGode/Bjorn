@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeMobileMenu();
     loadInitialData();
     setupAutoRefresh();
+    setupEpaperAutoRefresh();
     setupEventListeners();
 });
 
@@ -243,6 +244,9 @@ async function loadTabData(tabName) {
         case 'loot':
             await loadLootData();
             break;
+        case 'epaper':
+            await loadEpaperDisplay();
+            break;
         case 'config':
             await loadConfigData();
             break;
@@ -332,9 +336,9 @@ function updateDashboardStatus(data) {
     updateElement('vuln-count', data.vulnerability_count || 0);
     updateElement('cred-count', data.credential_count || 0);
     
-    // Update status
+    // Update status - use the actual e-paper display text
     updateElement('bjorn-status', data.bjorn_status || 'IDLE');
-    updateElement('bjorn-says', data.bjorn_says || 'Hacking away...');
+    updateElement('bjorn-says', (data.bjorn_status2 || data.bjorn_status || 'Awakening...'));
     updateElement('bjorn-mode', data.manual_mode ? 'Manual' : 'Auto');
     
     // Update connectivity status
@@ -675,4 +679,79 @@ async function saveConfig(form) {
     } catch (error) {
         addConsoleMessage('Failed to save configuration', 'error');
     }
+}
+
+// E-Paper Display Functions
+async function loadEpaperDisplay() {
+    try {
+        const data = await fetchAPI('/api/epaper-display');
+        
+        // Update status text
+        updateElement('epaper-status-1', data.status_text || 'Unknown');
+        updateElement('epaper-status-2', data.status_text2 || 'Unknown');
+        
+        // Update timestamp
+        if (data.timestamp) {
+            const date = new Date(data.timestamp * 1000);
+            updateElement('epaper-timestamp', date.toLocaleString());
+        }
+        
+        // Update display image
+        const imgElement = document.getElementById('epaper-display-image');
+        const loadingElement = document.getElementById('epaper-loading');
+        const connectionElement = document.getElementById('epaper-connection');
+        
+        if (data.image) {
+            imgElement.src = data.image;
+            imgElement.style.display = 'block';
+            loadingElement.style.display = 'none';
+            
+            // Update resolution info
+            if (data.width && data.height) {
+                updateElement('epaper-resolution', `${data.width} x ${data.height}`);
+            }
+            
+            // Update connection status
+            connectionElement.textContent = 'Live';
+            connectionElement.className = 'text-green-400 font-medium';
+        } else {
+            imgElement.style.display = 'none';
+            loadingElement.style.display = 'flex';
+            loadingElement.innerHTML = `
+                <div class="text-center text-gray-600">
+                    <svg class="h-8 w-8 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p>${data.message || 'No display image available'}</p>
+                </div>
+            `;
+            
+            // Update connection status
+            connectionElement.textContent = 'Offline';
+            connectionElement.className = 'text-red-400 font-medium';
+        }
+        
+    } catch (error) {
+        console.error('Error loading e-paper display:', error);
+        addConsoleMessage('Failed to load e-paper display', 'error');
+        
+        // Update connection status
+        const connectionElement = document.getElementById('epaper-connection');
+        connectionElement.textContent = 'Error';
+        connectionElement.className = 'text-red-400 font-medium';
+    }
+}
+
+function refreshEpaperDisplay() {
+    addConsoleMessage('Refreshing e-paper display...', 'info');
+    loadEpaperDisplay();
+}
+
+// Add e-paper display to auto-refresh
+function setupEpaperAutoRefresh() {
+    setInterval(() => {
+        if (currentTab === 'epaper') {
+            loadEpaperDisplay();
+        }
+    }, 5000); // Refresh every 5 seconds when on e-paper tab
 }

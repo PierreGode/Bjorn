@@ -100,6 +100,9 @@
                     <button onclick="showTab('loot')" class="nav-btn px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors" data-tab="loot">
                         Loot
                     </button>
+                    <button onclick="showTab('epaper')" class="nav-btn px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors" data-tab="epaper">
+                        E-Paper
+                    </button>
                     <button onclick="showTab('config')" class="nav-btn px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors" data-tab="config">
                         Config
                     </button>
@@ -121,6 +124,7 @@
                 <button onclick="showTab('network')" class="block w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700">Network</button>
                 <button onclick="showTab('credentials')" class="block w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700">Credentials</button>
                 <button onclick="showTab('loot')" class="block w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700">Loot</button>
+                <button onclick="showTab('epaper')" class="block w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700">E-Paper</button>
                 <button onclick="showTab('config')" class="block w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700">Config</button>
             </div>
         </div>
@@ -324,6 +328,86 @@
                 </div>
                 <div id="loot-table" class="overflow-x-auto">
                     <p class="text-gray-400">Loading loot data...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- E-Paper Display Tab -->
+        <div id="epaper-tab" class="tab-content hidden">
+            <div class="glass rounded-xl p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">E-Paper Display</h2>
+                    <button onclick="refreshEpaperDisplay()" class="refresh-btn bg-bjorn-600 hover:bg-bjorn-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+                
+                <!-- Live Status Display -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div class="glass rounded-xl p-4">
+                        <h3 class="text-lg font-semibold mb-3 text-bjorn-400">Current Status</h3>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Primary Status:</span>
+                                <span id="epaper-status-1" class="text-white font-medium">Loading...</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Secondary Status:</span>
+                                <span id="epaper-status-2" class="text-white font-medium">Loading...</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Last Updated:</span>
+                                <span id="epaper-timestamp" class="text-gray-300 text-sm">Never</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass rounded-xl p-4">
+                        <h3 class="text-lg font-semibold mb-3 text-bjorn-400">Display Info</h3>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Resolution:</span>
+                                <span id="epaper-resolution" class="text-white font-medium">Unknown</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Auto-refresh:</span>
+                                <span class="text-green-400 font-medium">Active</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Connection:</span>
+                                <span id="epaper-connection" class="text-green-400 font-medium">Live</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- E-Paper Display Image -->
+                <div class="glass rounded-xl p-6">
+                    <h3 class="text-lg font-semibold mb-4 text-bjorn-400">Live E-Paper Display</h3>
+                    <div class="flex justify-center">
+                        <div id="epaper-display-container" class="relative inline-block bg-white rounded-lg p-4 shadow-2xl">
+                            <img id="epaper-display-image" 
+                                 src="" 
+                                 alt="E-Paper Display" 
+                                 class="max-w-full h-auto rounded border-2 border-gray-300"
+                                 style="max-height: 500px; image-rendering: crisp-edges;">
+                            <div id="epaper-loading" class="absolute inset-0 flex items-center justify-center bg-gray-100 rounded">
+                                <div class="text-center text-gray-600">
+                                    <svg class="animate-spin h-8 w-8 mx-auto mb-2" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <p>Loading display...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-center text-gray-400 text-sm mt-4">
+                        This shows the exact same content as your Bjorn device's physical e-paper display
+                    </p>
                 </div>
             </div>
         </div>
