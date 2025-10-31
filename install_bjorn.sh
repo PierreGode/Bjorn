@@ -262,18 +262,37 @@ install_dependencies() {
         "libssl-dev"
         "libgpiod-dev"
         "libi2c-dev"
-        "libatlas-base-dev"
         "build-essential"
         "python3-sqlalchemy"
         "python3-pandas"
         "python3-numpy"
     )
     
-    # Install packages
+    # Optional packages that may not be available in all distributions
+    optional_packages=(
+        "libatlas-base-dev"
+    )
+    
+    # Optional packages that may not be available in all distributions
+    optional_packages=(
+        "libatlas-base-dev"
+    )
+    
+    # Install required packages
     for package in "${packages[@]}"; do
         log "INFO" "Installing $package..."
         apt-get install -y "$package"
         check_success "Installed $package"
+    done
+    
+    # Install optional packages (don't fail if unavailable)
+    for package in "${optional_packages[@]}"; do
+        log "INFO" "Attempting to install optional package: $package..."
+        if apt-get install -y "$package" 2>/dev/null; then
+            log "SUCCESS" "Installed optional package: $package"
+        else
+            log "WARNING" "Optional package $package not available (this is OK, using alternatives)"
+        fi
     done
     
     # Update nmap scripts
