@@ -481,6 +481,196 @@ def reboot_system():
         logger.error(f"Error rebooting system: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+# ============================================================================
+# WI-FI MANAGEMENT ENDPOINTS
+# ============================================================================
+
+@app.route('/api/wifi/status')
+def get_wifi_status():
+    """Get Wi-Fi manager status"""
+    try:
+        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        if wifi_manager and hasattr(wifi_manager, 'wifi_manager'):
+            status = wifi_manager.wifi_manager.get_status()
+            return jsonify(status)
+        else:
+            return jsonify({
+                'wifi_connected': shared_data.wifi_connected,
+                'ap_mode_active': False,
+                'current_ssid': None,
+                'error': 'Wi-Fi manager not available'
+            })
+    except Exception as e:
+        logger.error(f"Error getting Wi-Fi status: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/wifi/scan', methods=['POST'])
+def scan_wifi_networks():
+    """Scan for available Wi-Fi networks"""
+    try:
+        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        if wifi_manager and hasattr(wifi_manager, 'wifi_manager'):
+            networks = wifi_manager.wifi_manager.scan_networks()
+            return jsonify({'networks': networks})
+        else:
+            return jsonify({'error': 'Wi-Fi manager not available'}), 503
+    except Exception as e:
+        logger.error(f"Error scanning Wi-Fi networks: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/wifi/networks')
+def get_wifi_networks():
+    """Get available and known Wi-Fi networks"""
+    try:
+        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        if wifi_manager and hasattr(wifi_manager, 'wifi_manager'):
+            available = wifi_manager.wifi_manager.get_available_networks()
+            known = wifi_manager.wifi_manager.get_known_networks()
+            return jsonify({
+                'available': available,
+                'known': known
+            })
+        else:
+            return jsonify({'available': [], 'known': []})
+    except Exception as e:
+        logger.error(f"Error getting Wi-Fi networks: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/wifi/connect', methods=['POST'])
+def connect_wifi():
+    """Connect to a Wi-Fi network"""
+    try:
+        data = request.get_json()
+        if not data or 'ssid' not in data:
+            return jsonify({'error': 'SSID is required'}), 400
+        
+        ssid = data['ssid']
+        password = data.get('password')
+        priority = data.get('priority', 1)
+        save_network = data.get('save', True)
+        
+        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        if not wifi_manager or not hasattr(wifi_manager, 'wifi_manager'):
+            return jsonify({'error': 'Wi-Fi manager not available'}), 503
+        
+        # Try to connect
+        success = wifi_manager.wifi_manager.connect_to_network(ssid, password)
+        
+        if success and save_network:
+            # Add to known networks if connection successful
+            wifi_manager.wifi_manager.add_known_network(ssid, password, priority)
+        
+        return jsonify({
+            'success': success,
+            'message': 'Connected successfully' if success else 'Connection failed'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error connecting to Wi-Fi: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/wifi/disconnect', methods=['POST'])
+def disconnect_wifi():
+    """Disconnect from current Wi-Fi network"""
+    try:
+        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        if not wifi_manager or not hasattr(wifi_manager, 'wifi_manager'):
+            return jsonify({'error': 'Wi-Fi manager not available'}), 503
+        
+        # Stop any active connection and start AP mode
+        result = wifi_manager.wifi_manager.start_ap_mode()
+        
+        return jsonify({
+            'success': result,
+            'message': 'Disconnected and started AP mode' if result else 'Failed to start AP mode'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error disconnecting Wi-Fi: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/wifi/forget', methods=['POST'])
+def forget_wifi_network():
+    """Remove a network from known networks"""
+    try:
+        data = request.get_json()
+        if not data or 'ssid' not in data:
+            return jsonify({'error': 'SSID is required'}), 400
+        
+        ssid = data['ssid']
+        
+        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        if not wifi_manager or not hasattr(wifi_manager, 'wifi_manager'):
+            return jsonify({'error': 'Wi-Fi manager not available'}), 503
+        
+        success = wifi_manager.wifi_manager.remove_known_network(ssid)
+        
+        return jsonify({
+            'success': success,
+            'message': 'Network forgotten' if success else 'Network not found'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error forgetting Wi-Fi network: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/wifi/ap/start', methods=['POST'])
+def start_wifi_ap():
+    """Start Wi-Fi Access Point mode"""
+    try:
+        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        if not wifi_manager or not hasattr(wifi_manager, 'wifi_manager'):
+            return jsonify({'error': 'Wi-Fi manager not available'}), 503
+        
+        success = wifi_manager.wifi_manager.start_ap_mode()
+        
+        return jsonify({
+            'success': success,
+            'message': 'AP mode started' if success else 'Failed to start AP mode'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error starting Wi-Fi AP: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/wifi/ap/stop', methods=['POST'])
+def stop_wifi_ap():
+    """Stop Wi-Fi Access Point mode"""
+    try:
+        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        if not wifi_manager or not hasattr(wifi_manager, 'wifi_manager'):
+            return jsonify({'error': 'Wi-Fi manager not available'}), 503
+        
+        success = wifi_manager.wifi_manager.stop_ap_mode()
+        
+        return jsonify({
+            'success': success,
+            'message': 'AP mode stopped' if success else 'Failed to stop AP mode'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error stopping Wi-Fi AP: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/wifi/reconnect', methods=['POST'])
+def reconnect_wifi():
+    """Force Wi-Fi reconnection attempt"""
+    try:
+        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        if not wifi_manager or not hasattr(wifi_manager, 'wifi_manager'):
+            return jsonify({'error': 'Wi-Fi manager not available'}), 503
+        
+        success = wifi_manager.wifi_manager.force_reconnect()
+        
+        return jsonify({
+            'success': success,
+            'message': 'Reconnection attempt initiated' if success else 'Reconnection failed'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error reconnecting Wi-Fi: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/epaper-display')
 def get_epaper_display():
     """Get current e-paper display image as base64"""

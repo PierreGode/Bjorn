@@ -27,6 +27,7 @@ from comment import Commentaireia
 from webapp_modern import run_server, handle_exit as handle_exit_web
 from orchestrator import Orchestrator
 from logger import Logger
+from wifi_manager import WiFiManager
 
 logger = Logger(name="Bjorn.py", level=logging.DEBUG)
 
@@ -37,14 +38,14 @@ class Bjorn:
         self.commentaire_ia = Commentaireia()
         self.orchestrator_thread = None
         self.orchestrator = None
+        self.wifi_manager = WiFiManager(shared_data)
 
     def run(self):
         """Main loop for Bjorn. Waits for Wi-Fi connection and starts Orchestrator."""
-        # Wait for startup delay if configured in shared data
-        if hasattr(self.shared_data, 'startup_delay') and self.shared_data.startup_delay > 0:
-            logger.info(f"Waiting for startup delay: {self.shared_data.startup_delay} seconds")
-            time.sleep(self.shared_data.startup_delay)
-
+        # Initialize Wi-Fi management system
+        logger.info("Starting Wi-Fi management system...")
+        self.wifi_manager.start()
+        
         # Main loop to keep Bjorn running
         while not self.shared_data.should_exit:
             if not self.shared_data.manual_mode:
@@ -55,18 +56,22 @@ class Bjorn:
 
     def check_and_start_orchestrator(self):
         """Check Wi-Fi and start the orchestrator if connected."""
-        if self.is_wifi_connected():
-            self.wifi_connected = True
+        if self.wifi_manager.check_wifi_connection():
+            self.shared_data.wifi_connected = True
             if self.orchestrator_thread is None or not self.orchestrator_thread.is_alive():
                 self.start_orchestrator()
         else:
-            self.wifi_connected = False
-            logger.info("Waiting for Wi-Fi connection to start Orchestrator...")
+            self.shared_data.wifi_connected = False
+            if not self.wifi_manager.startup_complete:
+                logger.info("Waiting for Wi-Fi management system to complete startup...")
+            else:
+                logger.info("Waiting for Wi-Fi connection to start Orchestrator...")
 
     def start_orchestrator(self):
         """Start the orchestrator thread."""
-        self.is_wifi_connected() # reCheck if Wi-Fi is connected before starting the orchestrator
-        if self.wifi_connected:  # Check if Wi-Fi is connected before starting the orchestrator
+        # Use Wi-Fi manager's connection check
+        if self.wifi_manager.check_wifi_connection():
+            self.shared_data.wifi_connected = True
             if self.orchestrator_thread is None or not self.orchestrator_thread.is_alive():
                 logger.info("Starting Orchestrator thread...")
                 self.shared_data.orchestrator_should_exit = False
@@ -95,11 +100,33 @@ class Bjorn:
         else:
             logger.info("Orchestrator thread is not running.")
 
+    def stop(self):
+        """Stop Bjorn and cleanup all resources."""
+        logger.info("Stopping Bjorn...")
+        
+        # Stop orchestrator
+        self.stop_orchestrator()
+        
+        # Stop Wi-Fi manager
+        if hasattr(self, 'wifi_manager'):
+            self.wifi_manager.stop()
+        
+        # Set exit flags
+        self.shared_data.should_exit = True
+        self.shared_data.orchestrator_should_exit = True
+        self.shared_data.display_should_exit = True
+        self.shared_data.webapp_should_exit = True
+        
+        logger.info("Bjorn stopped successfully")
+
     def is_wifi_connected(self):
-        """Checks for Wi-Fi connectivity using the nmcli command."""
-        result = subprocess.Popen(['nmcli', '-t', '-f', 'active', 'dev', 'wifi'], stdout=subprocess.PIPE, text=True).communicate()[0]
-        self.wifi_connected = 'yes' in result
-        return self.wifi_connected
+        """Legacy method - use wifi_manager for new code."""
+        if hasattr(self, 'wifi_manager'):
+            return self.wifi_manager.check_wifi_connection()
+        else:
+            # Fallback to original method
+            result = subprocess.Popen(['nmcli', '-t', '-f', 'active', 'dev', 'wifi'], stdout=subprocess.PIPE, text=True).communicate()[0]
+            return 'yes' in result
 
     
     @staticmethod
@@ -112,19 +139,30 @@ class Bjorn:
 
 def handle_exit(sig, frame, display_thread, bjorn_thread, web_thread):
     """Handles the termination of the main, display, and web threads."""
+    logger.info("Received exit signal, initiating clean shutdown...")
+    
+    # Stop Bjorn instance first
+    if hasattr(shared_data, 'bjorn_instance') and shared_data.bjorn_instance:
+        shared_data.bjorn_instance.stop()
+    
+    # Set all exit flags
     shared_data.should_exit = True
-    shared_data.orchestrator_should_exit = True  # Ensure orchestrator stops
-    shared_data.display_should_exit = True  # Ensure display stops
-    shared_data.webapp_should_exit = True  # Ensure web server stops
+    shared_data.orchestrator_should_exit = True
+    shared_data.display_should_exit = True
+    shared_data.webapp_should_exit = True
+    
+    # Stop individual threads
     handle_exit_display(sig, frame, display_thread)
-    if display_thread.is_alive():
-        display_thread.join()
-    if bjorn_thread.is_alive():
-        bjorn_thread.join()
-    if web_thread.is_alive():
-        web_thread.join()
+    
+    if display_thread and display_thread.is_alive():
+        display_thread.join(timeout=5)
+    if bjorn_thread and bjorn_thread.is_alive():
+        bjorn_thread.join(timeout=5)
+    if web_thread and web_thread.is_alive():
+        web_thread.join(timeout=5)
+    
     logger.info("Main loop finished. Clean exit.")
-    sys.exit(0)  # Used sys.exit(0) instead of exit(0)
+    sys.exit(0)
 
 
 

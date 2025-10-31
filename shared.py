@@ -164,6 +164,16 @@ class SharedData:
             "timewait_ftp": 0,
             "timewait_sql": 0,
             "timewait_rdp": 0,
+            
+            "__title_wifi__": "Wi-Fi Management",
+            "wifi_known_networks": [],
+            "wifi_ap_ssid": "Bjorn-Setup",
+            "wifi_ap_password": "bjornpassword",
+            "wifi_connection_timeout": 60,
+            "wifi_max_attempts": 3,
+            "wifi_scan_interval": 300,
+            "wifi_monitor_enabled": True,
+            "wifi_auto_ap_fallback": True,
         }
 
     def update_mac_blacklist(self):
