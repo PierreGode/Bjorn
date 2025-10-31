@@ -1341,6 +1341,420 @@ def legacy_download_file():
         return str(e), 500
 
 # ============================================================================
+# IMAGE GALLERY ENDPOINTS
+# ============================================================================
+
+@app.route('/api/images/list')
+def list_images_api():
+    """Get list of all images and screenshots"""
+    try:
+        images = []
+        
+        # Define image directories to scan
+        image_dirs = [
+            ('screenshots', shared_data.webdir),  # Screenshots in web directory
+            ('status_images', shared_data.statuspicdir),  # Status images
+            ('static_images', shared_data.staticpicdir),  # Static images  
+            ('captured_images', shared_data.datastolendir)  # Captured images in data stolen
+        ]
+        
+        for category, directory in image_dirs:
+            if os.path.exists(directory):
+                for root, dirs, files in os.walk(directory):
+                    for file in files:
+                        if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')):
+                            filepath = os.path.join(root, file)
+                            try:
+                                stat = os.stat(filepath)
+                                rel_path = os.path.relpath(filepath, shared_data.currentdir)
+                                
+                                images.append({
+                                    'filename': file,
+                                    'path': rel_path.replace('\\', '/'),
+                                    'full_path': filepath,
+                                    'category': category,
+                                    'size': stat.st_size,
+                                    'modified': stat.st_mtime,
+                                    'url': f'/api/images/serve?path={rel_path.replace(chr(92), "/")}'
+                                })
+                            except Exception as e:
+                                logger.error(f"Error processing image {file}: {e}")
+        
+        # Sort by modification time (newest first)
+        images.sort(key=lambda x: x['modified'], reverse=True)
+        
+        return jsonify(images)
+        
+    except Exception as e:
+        logger.error(f"Error listing images: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/images/serve')
+def serve_image_api():
+    """Serve an image file"""
+    try:
+        image_path = request.args.get('path')
+        if not image_path:
+            return jsonify({'error': 'Image path required'}), 400
+        
+        # Security check - ensure path is within project directory
+        full_path = os.path.join(shared_data.currentdir, image_path)
+        full_path = os.path.normpath(full_path)
+        
+        if not full_path.startswith(shared_data.currentdir):
+            return jsonify({'error': 'Invalid path'}), 403
+        
+        if not os.path.isfile(full_path):
+            return jsonify({'error': 'Image not found'}), 404
+        
+        return send_from_directory(
+            os.path.dirname(full_path),
+            os.path.basename(full_path)
+        )
+        
+    except Exception as e:
+        logger.error(f"Error serving image: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/images/delete', methods=['POST'])
+def delete_image_api():
+    """Delete an image file"""
+    try:
+        data = request.get_json()
+        image_path = data.get('path')
+        
+        if not image_path:
+            return jsonify({'error': 'Image path required'}), 400
+        
+        # Security check - ensure path is within project directory
+        full_path = os.path.join(shared_data.currentdir, image_path)
+        full_path = os.path.normpath(full_path)
+        
+        if not full_path.startswith(shared_data.currentdir):
+            return jsonify({'error': 'Invalid path'}), 403
+        
+        if not os.path.isfile(full_path):
+            return jsonify({'error': 'Image not found'}), 404
+        
+        os.remove(full_path)
+        logger.info(f"Deleted image: {full_path}")
+        
+        return jsonify({'success': True, 'message': 'Image deleted successfully'})
+        
+    except Exception as e:
+        logger.error(f"Error deleting image: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/images/capture', methods=['POST'])
+def capture_screenshot_api():
+    """Capture a new screenshot"""
+    try:
+        # Import display module for screenshot capture
+        import display
+        
+        # Generate timestamp filename
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"screenshot_{timestamp}.png"
+        filepath = os.path.join(shared_data.webdir, filename)
+        
+        # Capture screenshot using the display module
+        display_manager = display.DisplayManager(shared_data)
+        if hasattr(display_manager, 'capture_screenshot'):
+            success = display_manager.capture_screenshot(filepath)
+        else:
+            # Fallback to creating a placeholder
+            from PIL import Image, ImageDraw, ImageFont
+            img = Image.new('RGB', (400, 300), color='black')
+            draw = ImageDraw.Draw(img)
+            draw.text((50, 150), f"Screenshot captured\n{timestamp}", fill='white')
+            img.save(filepath)
+            success = True
+        
+        if success:
+            return jsonify({
+                'success': True, 
+                'message': 'Screenshot captured successfully',
+                'filename': filename,
+                'path': f'web/{filename}'
+            })
+        else:
+            return jsonify({'error': 'Failed to capture screenshot'}), 500
+        
+    except Exception as e:
+        logger.error(f"Error capturing screenshot: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/images/info')
+def get_image_info_api():
+    """Get detailed information about an image"""
+    try:
+        image_path = request.args.get('path')
+        if not image_path:
+            return jsonify({'error': 'Image path required'}), 400
+        
+        # Security check
+        full_path = os.path.join(shared_data.currentdir, image_path)
+        full_path = os.path.normpath(full_path)
+        
+        if not full_path.startswith(shared_data.currentdir):
+            return jsonify({'error': 'Invalid path'}), 403
+        
+        if not os.path.isfile(full_path):
+            return jsonify({'error': 'Image not found'}), 404
+        
+        # Get file stats
+        stat = os.stat(full_path)
+        
+        # Try to get image dimensions
+        try:
+            from PIL import Image
+            with Image.open(full_path) as img:
+                width, height = img.size
+                format_type = img.format
+        except Exception:
+            width = height = format_type = None
+        
+        info = {
+            'filename': os.path.basename(full_path),
+            'path': image_path,
+            'size': stat.st_size,
+            'size_formatted': format_bytes(stat.st_size),
+            'modified': stat.st_mtime,
+            'modified_formatted': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
+            'width': width,
+            'height': height,
+            'format': format_type
+        }
+        
+        return jsonify(info)
+        
+    except Exception as e:
+        logger.error(f"Error getting image info: {e}")
+        return jsonify({'error': str(e)}), 500
+
+def format_bytes(bytes_value):
+    """Format bytes to human readable format"""
+    if bytes_value == 0:
+        return '0 B'
+    
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if bytes_value < 1024.0:
+            return f"{bytes_value:.1f} {unit}"
+        bytes_value /= 1024.0
+    return f"{bytes_value:.1f} TB"
+
+# ============================================================================
+# SYSTEM MONITORING ENDPOINTS
+# ============================================================================
+
+@app.route('/api/system/status')
+def get_system_status_api():
+    """Get comprehensive system status"""
+    try:
+        import psutil
+        import subprocess
+        
+        # CPU Information
+        cpu_percent = psutil.cpu_percent(interval=1)
+        cpu_count = psutil.cpu_count()
+        cpu_freq = psutil.cpu_freq()
+        
+        # Memory Information
+        memory = psutil.virtual_memory()
+        
+        # Disk Information
+        disk = psutil.disk_usage('/')
+        
+        # Network Interfaces
+        net_if = psutil.net_if_addrs()
+        net_stats = psutil.net_if_stats()
+        
+        # System Information
+        boot_time = psutil.boot_time()
+        uptime = time.time() - boot_time
+        
+        # Process Information
+        processes = []
+        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
+            try:
+                pinfo = proc.info
+                processes.append({
+                    'pid': pinfo['pid'],
+                    'name': pinfo['name'],
+                    'cpu_percent': pinfo['cpu_percent'],
+                    'memory_percent': pinfo['memory_percent']
+                })
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        
+        # Sort processes by CPU usage
+        processes.sort(key=lambda x: x['cpu_percent'] or 0, reverse=True)
+        processes = processes[:10]  # Top 10 processes
+        
+        # Temperature (if available)
+        try:
+            temps = psutil.sensors_temperatures()
+            temperature_data = {}
+            for name, entries in temps.items():
+                for entry in entries:
+                    temperature_data[f"{name}_{entry.label}"] = entry.current
+        except:
+            temperature_data = {}
+        
+        # Network interface details
+        network_interfaces = []
+        for interface, addrs in net_if.items():
+            if interface in net_stats:
+                stats = net_stats[interface]
+                interface_info = {
+                    'name': interface,
+                    'is_up': stats.isup,
+                    'speed': stats.speed,
+                    'addresses': []
+                }
+                
+                for addr in addrs:
+                    interface_info['addresses'].append({
+                        'family': str(addr.family),
+                        'address': addr.address,
+                        'netmask': addr.netmask,
+                        'broadcast': addr.broadcast
+                    })
+                
+                network_interfaces.append(interface_info)
+        
+        system_status = {
+            'cpu': {
+                'percent': round(cpu_percent, 1),
+                'count': cpu_count,
+                'frequency': {
+                    'current': round(cpu_freq.current, 2) if cpu_freq else None,
+                    'min': round(cpu_freq.min, 2) if cpu_freq else None,
+                    'max': round(cpu_freq.max, 2) if cpu_freq else None
+                }
+            },
+            'memory': {
+                'total': memory.total,
+                'available': memory.available,
+                'used': memory.used,
+                'percent': round(memory.percent, 1),
+                'total_formatted': format_bytes(memory.total),
+                'available_formatted': format_bytes(memory.available),
+                'used_formatted': format_bytes(memory.used)
+            },
+            'disk': {
+                'total': disk.total,
+                'used': disk.used,
+                'free': disk.free,
+                'percent': round((disk.used / disk.total) * 100, 1),
+                'total_formatted': format_bytes(disk.total),
+                'used_formatted': format_bytes(disk.used),
+                'free_formatted': format_bytes(disk.free)
+            },
+            'uptime': {
+                'seconds': round(uptime),
+                'formatted': format_uptime(uptime)
+            },
+            'processes': processes,
+            'network_interfaces': network_interfaces,
+            'temperatures': temperature_data
+        }
+        
+        return jsonify(system_status)
+        
+    except Exception as e:
+        logger.error(f"Error getting system status: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/system/processes')
+def get_processes_api():
+    """Get detailed process information"""
+    try:
+        import psutil
+        
+        processes = []
+        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent', 'status', 'create_time']):
+            try:
+                pinfo = proc.info
+                processes.append({
+                    'pid': pinfo['pid'],
+                    'name': pinfo['name'],
+                    'cpu_percent': round(pinfo['cpu_percent'] or 0, 2),
+                    'memory_percent': round(pinfo['memory_percent'] or 0, 2),
+                    'status': pinfo['status'],
+                    'create_time': pinfo['create_time']
+                })
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        
+        # Sort by CPU usage
+        sort_by = request.args.get('sort', 'cpu')
+        if sort_by == 'memory':
+            processes.sort(key=lambda x: x['memory_percent'], reverse=True)
+        else:
+            processes.sort(key=lambda x: x['cpu_percent'], reverse=True)
+        
+        return jsonify(processes)
+        
+    except Exception as e:
+        logger.error(f"Error getting processes: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/system/network-stats')
+def get_network_stats_api():
+    """Get network interface statistics"""
+    try:
+        import psutil
+        
+        net_io = psutil.net_io_counters(pernic=True)
+        net_connections = psutil.net_connections()
+        
+        # Count connections by status
+        connection_stats = {}
+        for conn in net_connections:
+            status = conn.status
+            connection_stats[status] = connection_stats.get(status, 0) + 1
+        
+        network_stats = {
+            'interfaces': {},
+            'connections': connection_stats,
+            'total_connections': len(net_connections)
+        }
+        
+        for interface, stats in net_io.items():
+            network_stats['interfaces'][interface] = {
+                'bytes_sent': stats.bytes_sent,
+                'bytes_recv': stats.bytes_recv,
+                'packets_sent': stats.packets_sent,
+                'packets_recv': stats.packets_recv,
+                'errin': stats.errin,
+                'errout': stats.errout,
+                'dropin': stats.dropin,
+                'dropout': stats.dropout,
+                'bytes_sent_formatted': format_bytes(stats.bytes_sent),
+                'bytes_recv_formatted': format_bytes(stats.bytes_recv)
+            }
+        
+        return jsonify(network_stats)
+        
+    except Exception as e:
+        logger.error(f"Error getting network stats: {e}")
+        return jsonify({'error': str(e)}), 500
+
+def format_uptime(seconds):
+    """Format uptime in human readable format"""
+    days = int(seconds // 86400)
+    hours = int((seconds % 86400) // 3600)
+    minutes = int((seconds % 3600) // 60)
+    
+    if days > 0:
+        return f"{days}d {hours}h {minutes}m"
+    elif hours > 0:
+        return f"{hours}h {minutes}m"
+    else:
+        return f"{minutes}m"
+
+# ============================================================================
 # SIGNAL HANDLERS
 # ============================================================================
 

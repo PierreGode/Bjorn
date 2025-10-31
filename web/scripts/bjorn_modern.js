@@ -145,6 +145,12 @@ function showTab(tabName) {
     // Store current tab
     currentTab = tabName;
     
+    // Clear system monitoring interval when leaving system tab
+    if (systemMonitoringInterval && tabName !== 'system') {
+        clearInterval(systemMonitoringInterval);
+        systemMonitoringInterval = null;
+    }
+    
     // Hide all tabs
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.add('hidden');
@@ -274,6 +280,12 @@ async function loadTabData(tabName) {
             break;
         case 'files':
             await loadFilesData();
+            break;
+        case 'images':
+            await loadImagesData();
+            break;
+        case 'system':
+            loadSystemData();
             break;
         case 'epaper':
             await loadEpaperDisplay();
@@ -1727,6 +1739,492 @@ function showNotification(message, type) {
 }
 
 // ============================================================================
+// IMAGE GALLERY FUNCTIONS
+// ============================================================================
+
+let currentImageFilter = 'all';
+let allImages = [];
+
+function loadImagesData() {
+    fetch('/api/images/list')
+        .then(response => response.json())
+        .then(images => {
+            allImages = images;
+            displayImages(images);
+        })
+        .catch(error => {
+            console.error('Error loading images:', error);
+            showImageError('Failed to load images: ' + error.message);
+        });
+}
+
+function displayImages(images) {
+    const imageGrid = document.getElementById('image-grid');
+    if (!imageGrid) return;
+    
+    if (images.length === 0) {
+        imageGrid.innerHTML = '<p class="text-gray-400 col-span-full text-center py-8">No images found</p>';
+        return;
+    }
+    
+    let html = '';
+    images.forEach(image => {
+        const date = new Date(image.modified * 1000).toLocaleDateString();
+        const size = formatBytes(image.size);
+        
+        html += `
+            <div class="image-item bg-slate-800 rounded-lg overflow-hidden hover:scale-105 transition-transform cursor-pointer"
+                 data-category="${image.category}" onclick="showImageDetail('${image.path}')">
+                <div class="aspect-square relative">
+                    <img src="${image.url}" alt="${image.filename}" 
+                         class="w-full h-full object-cover" 
+                         onerror="this.src='/web/images/no-image.png'">
+                    <div class="absolute top-2 right-2">
+                        <span class="bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                            ${image.category.replace('_', ' ')}
+                        </span>
+                    </div>
+                </div>
+                <div class="p-3">
+                    <h4 class="font-medium text-sm truncate" title="${image.filename}">${image.filename}</h4>
+                    <p class="text-xs text-gray-400">${size} • ${date}</p>
+                </div>
+            </div>
+        `;
+    });
+    
+    imageGrid.innerHTML = html;
+}
+
+function filterImages(category) {
+    currentImageFilter = category;
+    
+    // Update filter button states
+    document.querySelectorAll('.image-filter-btn').forEach(btn => {
+        if (btn.dataset.filter === category) {
+            btn.classList.remove('bg-gray-600');
+            btn.classList.add('bg-bjorn-600');
+        } else {
+            btn.classList.remove('bg-bjorn-600');
+            btn.classList.add('bg-gray-600');
+        }
+    });
+    
+    // Filter and display images
+    const filteredImages = category === 'all' ? 
+        allImages : 
+        allImages.filter(img => img.category === category);
+    
+    displayImages(filteredImages);
+}
+
+function showImageDetail(imagePath) {
+    // Get image info
+    fetch(`/api/images/info?path=${encodeURIComponent(imagePath)}`)
+        .then(response => response.json())
+        .then(info => {
+            const modal = document.getElementById('image-detail-modal');
+            const title = document.getElementById('image-detail-title');
+            const img = document.getElementById('image-detail-img');
+            const infoDiv = document.getElementById('image-detail-info');
+            const downloadBtn = document.getElementById('download-image-btn');
+            const deleteBtn = document.getElementById('delete-image-btn');
+            
+            if (!modal || !title || !img || !infoDiv || !downloadBtn || !deleteBtn) return;
+            
+            title.textContent = info.filename;
+            img.src = `/api/images/serve?path=${encodeURIComponent(imagePath)}`;
+            img.alt = info.filename;
+            
+            infoDiv.innerHTML = `
+                <div class="grid grid-cols-2 gap-2">
+                    <span class="text-gray-400">Filename:</span>
+                    <span>${info.filename}</span>
+                    
+                    <span class="text-gray-400">Size:</span>
+                    <span>${info.size_formatted}</span>
+                    
+                    <span class="text-gray-400">Modified:</span>
+                    <span>${info.modified_formatted}</span>
+                    
+                    ${info.width && info.height ? `
+                        <span class="text-gray-400">Dimensions:</span>
+                        <span>${info.width} × ${info.height}</span>
+                    ` : ''}
+                    
+                    ${info.format ? `
+                        <span class="text-gray-400">Format:</span>
+                        <span>${info.format}</span>
+                    ` : ''}
+                </div>
+            `;
+            
+            // Set up download button
+            downloadBtn.onclick = () => downloadImage(imagePath);
+            
+            // Set up delete button
+            deleteBtn.onclick = () => deleteImage(imagePath);
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        })
+        .catch(error => {
+            console.error('Error getting image info:', error);
+            showImageError('Failed to load image details');
+        });
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('image-detail-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+function downloadImage(imagePath) {
+    const downloadUrl = `/api/images/serve?path=${encodeURIComponent(imagePath)}`;
+    
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showImageSuccess('Download started');
+}
+
+function deleteImage(imagePath) {
+    if (!confirm('Are you sure you want to delete this image? This action cannot be undone.')) {
+        return;
+    }
+    
+    fetch('/api/images/delete', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ path: imagePath })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showImageSuccess('Image deleted successfully');
+            closeImageModal();
+            refreshImages();
+        } else {
+            showImageError(`Failed to delete image: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        showImageError(`Error deleting image: ${error.message}`);
+    });
+}
+
+function captureScreenshot() {
+    showImageLoading('Capturing screenshot...');
+    
+    fetch('/api/images/capture', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showImageSuccess('Screenshot captured successfully');
+            refreshImages();
+        } else {
+            showImageError(`Failed to capture screenshot: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        showImageError(`Error capturing screenshot: ${error.message}`);
+    });
+}
+
+function refreshImages() {
+    loadImagesData();
+}
+
+function showImageSuccess(message) {
+    showNotification(message, 'success');
+}
+
+function showImageError(message) {
+    showNotification(message, 'error');
+}
+
+function showImageLoading(message) {
+    showNotification(message, 'info');
+}
+
+// ============================================================================
+// SYSTEM MONITORING FUNCTIONS
+// ============================================================================
+
+let systemMonitoringInterval;
+let currentProcessSort = 'cpu';
+
+function loadSystemData() {
+    fetchSystemStatus();
+    fetchNetworkStats();
+    
+    // Auto-refresh every 5 seconds when on system tab
+    if (systemMonitoringInterval) {
+        clearInterval(systemMonitoringInterval);
+    }
+    
+    systemMonitoringInterval = setInterval(() => {
+        if (currentTab === 'system') {
+            fetchSystemStatus();
+            fetchNetworkStats();
+        }
+    }, 5000);
+}
+
+function fetchSystemStatus() {
+    fetch('/api/system/status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showSystemError('Failed to load system status: ' + data.error);
+                return;
+            }
+            updateSystemOverview(data);
+            updateProcessList(data.processes);
+            updateNetworkInterfaces(data.network_interfaces);
+            updateTemperatureDisplay(data.temperatures);
+        })
+        .catch(error => {
+            console.error('Error fetching system status:', error);
+            showSystemError('Failed to load system status');
+        });
+}
+
+function fetchNetworkStats() {
+    fetch('/api/system/network-stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Network stats error:', data.error);
+                return;
+            }
+            updateNetworkStats(data);
+        })
+        .catch(error => {
+            console.error('Error fetching network stats:', error);
+        });
+}
+
+function updateSystemOverview(data) {
+    // CPU
+    const cpuUsage = document.getElementById('cpu-usage');
+    const cpuDetails = document.getElementById('cpu-details');
+    const cpuProgress = document.getElementById('cpu-progress');
+    
+    if (cpuUsage) cpuUsage.textContent = `${data.cpu.percent}%`;
+    if (cpuDetails) cpuDetails.textContent = `${data.cpu.count} cores`;
+    if (cpuProgress) cpuProgress.style.width = `${data.cpu.percent}%`;
+    
+    // Memory
+    const memoryUsage = document.getElementById('memory-usage');
+    const memoryDetails = document.getElementById('memory-details');
+    const memoryProgress = document.getElementById('memory-progress');
+    
+    if (memoryUsage) memoryUsage.textContent = `${data.memory.percent}%`;
+    if (memoryDetails) memoryDetails.textContent = `${data.memory.used_formatted} / ${data.memory.total_formatted}`;
+    if (memoryProgress) memoryProgress.style.width = `${data.memory.percent}%`;
+    
+    // Disk
+    const diskUsage = document.getElementById('disk-usage');
+    const diskDetails = document.getElementById('disk-details');
+    const diskProgress = document.getElementById('disk-progress');
+    
+    if (diskUsage) diskUsage.textContent = `${data.disk.percent}%`;
+    if (diskDetails) diskDetails.textContent = `${data.disk.used_formatted} / ${data.disk.total_formatted}`;
+    if (diskProgress) diskProgress.style.width = `${data.disk.percent}%`;
+    
+    // Uptime
+    const uptimeDisplay = document.getElementById('uptime-display');
+    if (uptimeDisplay) uptimeDisplay.textContent = data.uptime.formatted;
+}
+
+function updateProcessList(processes) {
+    const processList = document.getElementById('process-list');
+    if (!processList) return;
+    
+    if (processes.length === 0) {
+        processList.innerHTML = '<p class="text-gray-400 text-center py-4">No process data available</p>';
+        return;
+    }
+    
+    let html = '';
+    processes.slice(0, 10).forEach(proc => {
+        const cpuPercent = (proc.cpu_percent || 0).toFixed(1);
+        const memoryPercent = (proc.memory_percent || 0).toFixed(1);
+        
+        html += `
+            <div class="flex items-center justify-between p-2 bg-slate-800 rounded text-sm">
+                <div class="flex-1 truncate">
+                    <span class="font-medium">${proc.name}</span>
+                    <span class="text-gray-400 ml-2">PID: ${proc.pid}</span>
+                </div>
+                <div class="flex space-x-3 text-xs">
+                    <span class="text-blue-400">${cpuPercent}% CPU</span>
+                    <span class="text-green-400">${memoryPercent}% MEM</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    processList.innerHTML = html;
+}
+
+function updateNetworkInterfaces(interfaces) {
+    const networkInterfaces = document.getElementById('network-interfaces');
+    if (!networkInterfaces) return;
+    
+    if (interfaces.length === 0) {
+        networkInterfaces.innerHTML = '<p class="text-gray-400 text-center py-4">No network interfaces found</p>';
+        return;
+    }
+    
+    let html = '';
+    interfaces.forEach(iface => {
+        const statusColor = iface.is_up ? 'text-green-400' : 'text-red-400';
+        const statusText = iface.is_up ? 'UP' : 'DOWN';
+        
+        html += `
+            <div class="border border-gray-700 rounded p-3">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="font-medium">${iface.name}</span>
+                    <span class="${statusColor} text-xs">${statusText}</span>
+                </div>
+                <div class="text-xs text-gray-400 space-y-1">
+                    ${iface.speed > 0 ? `<div>Speed: ${iface.speed} Mbps</div>` : ''}
+                    ${iface.addresses.map(addr => 
+                        `<div>${addr.address} (${addr.family})</div>`
+                    ).join('')}
+                </div>
+            </div>
+        `;
+    });
+    
+    networkInterfaces.innerHTML = html;
+}
+
+function updateNetworkStats(data) {
+    const networkStats = document.getElementById('network-stats');
+    if (!networkStats) return;
+    
+    let html = '';
+    
+    // Connection summary
+    html += `
+        <div class="bg-slate-800 rounded p-3">
+            <h4 class="font-medium mb-2">Connections</h4>
+            <div class="text-2xl font-bold text-blue-400">${data.total_connections}</div>
+            <div class="text-xs text-gray-400">Total active</div>
+        </div>
+    `;
+    
+    // Interface statistics
+    Object.entries(data.interfaces).slice(0, 4).forEach(([name, stats]) => {
+        html += `
+            <div class="bg-slate-800 rounded p-3">
+                <h4 class="font-medium mb-2">${name}</h4>
+                <div class="text-xs space-y-1">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Sent:</span>
+                        <span class="text-green-400">${stats.bytes_sent_formatted}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Received:</span>
+                        <span class="text-blue-400">${stats.bytes_recv_formatted}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Packets:</span>
+                        <span>${stats.packets_sent + stats.packets_recv}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    networkStats.innerHTML = html;
+}
+
+function updateTemperatureDisplay(temperatures) {
+    const tempSection = document.getElementById('temperature-section');
+    const tempDisplay = document.getElementById('temperature-display');
+    
+    if (!tempSection || !tempDisplay) return;
+    
+    if (Object.keys(temperatures).length === 0) {
+        tempSection.classList.add('hidden');
+        return;
+    }
+    
+    tempSection.classList.remove('hidden');
+    
+    let html = '';
+    Object.entries(temperatures).forEach(([sensor, temp]) => {
+        const tempColor = temp > 70 ? 'text-red-400' : temp > 50 ? 'text-yellow-400' : 'text-green-400';
+        
+        html += `
+            <div class="bg-slate-800 rounded p-3">
+                <h4 class="font-medium mb-1 text-sm">${sensor}</h4>
+                <div class="text-xl font-bold ${tempColor}">${temp.toFixed(1)}°C</div>
+            </div>
+        `;
+    });
+    
+    tempDisplay.innerHTML = html;
+}
+
+function sortProcesses(sortBy) {
+    currentProcessSort = sortBy;
+    
+    // Update button states
+    document.querySelectorAll('.process-sort-btn').forEach(btn => {
+        if (btn.dataset.sort === sortBy) {
+            btn.classList.remove('bg-gray-600');
+            btn.classList.add('bg-bjorn-600');
+        } else {
+            btn.classList.remove('bg-bjorn-600');
+            btn.classList.add('bg-gray-600');
+        }
+    });
+    
+    // Fetch processes with new sort order
+    fetch(`/api/system/processes?sort=${sortBy}`)
+        .then(response => response.json())
+        .then(processes => {
+            updateProcessList(processes);
+        })
+        .catch(error => {
+            console.error('Error sorting processes:', error);
+        });
+}
+
+function refreshSystemStatus() {
+    fetchSystemStatus();
+    fetchNetworkStats();
+    showSystemSuccess('System status refreshed');
+}
+
+function showSystemSuccess(message) {
+    showNotification(message, 'success');
+}
+
+function showSystemError(message) {
+    showNotification(message, 'error');
+}
+
+// ============================================================================
 // GLOBAL FUNCTION EXPORTS (for HTML onclick handlers)
 // ============================================================================
 
@@ -1756,3 +2254,18 @@ window.uploadFile = uploadFile;
 window.clearFiles = clearFiles;
 window.refreshFiles = refreshFiles;
 window.closeFileModal = closeFileModal;
+
+// Image Management Functions
+window.loadImagesData = loadImagesData;
+window.filterImages = filterImages;
+window.showImageDetail = showImageDetail;
+window.closeImageModal = closeImageModal;
+window.downloadImage = downloadImage;
+window.deleteImage = deleteImage;
+window.captureScreenshot = captureScreenshot;
+window.refreshImages = refreshImages;
+
+// System Monitoring Functions
+window.loadSystemData = loadSystemData;
+window.sortProcesses = sortProcesses;
+window.refreshSystemStatus = refreshSystemStatus;
