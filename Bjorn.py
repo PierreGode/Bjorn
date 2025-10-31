@@ -39,6 +39,9 @@ class Bjorn:
         self.orchestrator_thread = None
         self.orchestrator = None
         self.wifi_manager = WiFiManager(shared_data)
+        
+        # Set reference to this instance in shared_data for other modules
+        self.shared_data.bjorn_instance = self
 
     def run(self):
         """Main loop for Bjorn. Waits for Wi-Fi connection and starts Orchestrator."""

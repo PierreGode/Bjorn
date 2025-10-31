@@ -201,6 +201,11 @@ class Display:
                     self.manual_mode_txt = "A"
                 self.shared_data.wifi_connected = self.is_wifi_connected()
                 self.shared_data.usb_active = self.is_usb_connected()
+                
+                # Update Wi-Fi/AP status text for display
+                wifi_status_text = self.get_wifi_status_text()
+                self.shared_data.bjornstatustext2 = wifi_status_text
+                
                 self.get_open_files()
 
             except (FileNotFoundError, pd.errors.EmptyDataError) as e:
@@ -244,6 +249,90 @@ class Display:
         except Exception as e:
             logger.error(f"Error checking WiFi status: {e}")
             return False
+
+    def is_ap_mode_active(self):
+        """Check if AP mode is currently active."""
+        try:
+            # Check if hostapd is running
+            result = subprocess.run(['pgrep', 'hostapd'], capture_output=True, text=True)
+            if result.returncode == 0:
+                return True
+            
+            # Alternative check: see if we're listening on AP interface
+            result = subprocess.run(['ip', 'addr', 'show', 'wlan0'], capture_output=True, text=True)
+            if result.returncode == 0 and '192.168.4.1' in result.stdout:
+                return True
+                
+            return False
+        except Exception as e:
+            logger.error(f"Error checking AP mode status: {e}")
+            return False
+
+    def get_wifi_status_text(self):
+        """Get descriptive text for current Wi-Fi status."""
+        try:
+            # Try to get status from WiFi manager first (more accurate)
+            if (hasattr(self.shared_data, 'bjorn_instance') and 
+                self.shared_data.bjorn_instance and 
+                hasattr(self.shared_data.bjorn_instance, 'wifi_manager')):
+                
+                wifi_mgr = self.shared_data.bjorn_instance.wifi_manager
+                
+                # Check AP mode status first
+                if hasattr(wifi_mgr, 'ap_mode_active') and wifi_mgr.ap_mode_active:
+                    # Try to get client count
+                    client_count = 0
+                    if hasattr(wifi_mgr, 'ap_clients_count'):
+                        client_count = wifi_mgr.ap_clients_count
+                    
+                    if client_count > 0:
+                        return f"AP: {client_count} client{'s' if client_count != 1 else ''}"
+                    else:
+                        return "AP: No clients"
+                
+                # Check Wi-Fi connection status
+                if hasattr(wifi_mgr, 'wifi_connected') and wifi_mgr.wifi_connected:
+                    if hasattr(wifi_mgr, 'current_ssid') and wifi_mgr.current_ssid:
+                        return f"WiFi: {wifi_mgr.current_ssid}"
+                    else:
+                        return "WiFi: Connected"
+                
+                # Check if cycling mode is active
+                if hasattr(wifi_mgr, 'cycling_mode') and wifi_mgr.cycling_mode:
+                    return "WiFi: Cycling"
+                
+                return "WiFi: Disconnected"
+            
+            # Fallback to system commands if WiFi manager not available
+            # Check if we're in AP mode first
+            if self.is_ap_mode_active():
+                # Try to get AP client count
+                try:
+                    result = subprocess.run(['hostapd_cli', '-i', 'wlan0', 'list_sta'], 
+                                          capture_output=True, text=True, timeout=2)
+                    if result.returncode == 0:
+                        clients = [line.strip() for line in result.stdout.strip().split('\n') if line.strip()]
+                        client_count = len(clients)
+                        if client_count > 0:
+                            return f"AP: {client_count} client{'s' if client_count != 1 else ''}"
+                        else:
+                            return "AP: No clients"
+                    else:
+                        return "AP: Active"
+                except:
+                    return "AP: Active"
+            
+            # Check if Wi-Fi is connected
+            result = subprocess.run(['iwgetid', '-r'], capture_output=True, text=True)
+            if result.returncode == 0 and result.stdout.strip():
+                ssid = result.stdout.strip()
+                return f"WiFi: {ssid}"
+            
+            return "WiFi: Disconnected"
+            
+        except Exception as e:
+            logger.error(f"Error getting WiFi status text: {e}")
+            return "WiFi: Unknown"
 
     def is_manual_mode(self):
         """Check if the BjornOrch is in manual mode."""
