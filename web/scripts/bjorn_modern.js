@@ -666,13 +666,13 @@ async function executeManualAttack() {
     try {
         addConsoleMessage(`Executing manual attack: ${action} on ${ip}:${port}`, 'info');
         
-        const data = await postAPI('/execute_manual_attack', {
+        const data = await postAPI('/api/manual/execute-attack', {
             ip: ip,
             port: port,
             action: action
         });
         
-        if (data.status === 'success') {
+        if (data.success) {
             addConsoleMessage(`Manual attack executed successfully: ${data.message}`, 'success');
         } else {
             addConsoleMessage(`Manual attack failed: ${data.message || 'Unknown error'}`, 'error');
@@ -688,9 +688,9 @@ async function startOrchestrator() {
     try {
         addConsoleMessage('Starting automatic mode...', 'info');
         
-        const data = await postAPI('/start_orchestrator', {});
+        const data = await postAPI('/api/manual/orchestrator/start', {});
         
-        if (data.status === 'success') {
+        if (data.success) {
             addConsoleMessage('Automatic mode started successfully', 'success');
             updateElement('bjorn-mode', 'Auto');
             document.getElementById('bjorn-mode').className = 'text-green-400 font-semibold';
@@ -714,9 +714,9 @@ async function stopOrchestrator() {
     try {
         addConsoleMessage('Stopping automatic mode...', 'info');
         
-        const data = await postAPI('/stop_orchestrator', {});
+        const data = await postAPI('/api/manual/orchestrator/stop', {});
         
-        if (data.status === 'success') {
+        if (data.success) {
             addConsoleMessage('Automatic mode stopped - Manual mode activated', 'warning');
             updateElement('bjorn-mode', 'Manual');
             document.getElementById('bjorn-mode').className = 'text-orange-400 font-semibold';
@@ -742,9 +742,9 @@ async function triggerNetworkScan() {
     try {
         addConsoleMessage('Triggering network scan...', 'info');
         
-        const data = await postAPI('/trigger_network_scan', {});
+        const data = await postAPI('/api/manual/scan/network', {});
         
-        if (data.status === 'success') {
+        if (data.success) {
             addConsoleMessage('Network scan triggered successfully', 'success');
         } else {
             addConsoleMessage(`Failed to trigger network scan: ${data.message || 'Unknown error'}`, 'error');
@@ -758,11 +758,19 @@ async function triggerNetworkScan() {
 
 async function triggerVulnScan() {
     try {
-        addConsoleMessage('Triggering vulnerability scan...', 'info');
+        const vulnIpDropdown = document.getElementById('vuln-ip-dropdown');
+        const selectedIp = vulnIpDropdown ? vulnIpDropdown.value : '';
         
-        const data = await postAPI('/trigger_vuln_scan', {});
+        if (!selectedIp) {
+            addConsoleMessage('Please select an IP address for vulnerability scan', 'error');
+            return;
+        }
         
-        if (data.status === 'success') {
+        addConsoleMessage(`Triggering vulnerability scan for ${selectedIp}...`, 'info');
+        
+        const data = await postAPI('/api/manual/scan/vulnerability', { ip: selectedIp });
+        
+        if (data.success) {
             addConsoleMessage('Vulnerability scan triggered successfully', 'success');
         } else {
             addConsoleMessage(`Failed to trigger vulnerability scan: ${data.message || 'Unknown error'}`, 'error');
