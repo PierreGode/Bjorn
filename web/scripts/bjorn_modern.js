@@ -272,6 +272,9 @@ async function loadTabData(tabName) {
         case 'loot':
             await loadLootData();
             break;
+        case 'files':
+            await loadFilesData();
+            break;
         case 'epaper':
             await loadEpaperDisplay();
             break;
@@ -317,6 +320,15 @@ async function loadConfigData() {
         checkForUpdates();
     } catch (error) {
         console.error('Error loading config:', error);
+    }
+}
+
+async function loadFilesData() {
+    try {
+        displayDirectoryTree();
+        loadFiles('/');
+    } catch (error) {
+        console.error('Error loading files data:', error);
     }
 }
 
@@ -1351,6 +1363,370 @@ function setupEpaperAutoRefresh() {
 }
 
 // ============================================================================
+// FILE MANAGEMENT FUNCTIONS
+// ============================================================================
+
+let currentDirectory = '/';
+let fileOperationInProgress = false;
+
+function loadFiles(path = '/') {
+    if (fileOperationInProgress) return;
+    
+    fetch(`/api/files/list?path=${encodeURIComponent(path)}`)
+        .then(response => response.json())
+        .then(files => {
+            displayFiles(files, path);
+            updateCurrentPath(path);
+        })
+        .catch(error => {
+            console.error('Error loading files:', error);
+            showFileError('Failed to load files: ' + error.message);
+        });
+}
+
+function displayFiles(files, path) {
+    const fileList = document.getElementById('file-list');
+    currentDirectory = path;
+    
+    if (!fileList) return;
+    
+    if (files.length === 0) {
+        fileList.innerHTML = '<p class="text-gray-400 p-4">No files found in this directory</p>';
+        return;
+    }
+    
+    let html = '<div class="space-y-2">';
+    
+    // Add back button if not in root
+    if (path !== '/') {
+        const parentPath = path.split('/').slice(0, -1).join('/') || '/';
+        html += `
+            <div class="flex items-center p-3 hover:bg-slate-700 rounded-lg cursor-pointer transition-colors" onclick="loadFiles('${parentPath}')">
+                <svg class="w-5 h-5 mr-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                <span class="text-blue-400">.. (Parent Directory)</span>
+            </div>
+        `;
+    }
+    
+    // Sort files - directories first, then by name
+    files.sort((a, b) => {
+        if (a.is_directory && !b.is_directory) return -1;
+        if (!a.is_directory && b.is_directory) return 1;
+        return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+    });
+    
+    files.forEach(file => {
+        const icon = file.is_directory ? 
+            `<svg class="w-5 h-5 mr-3 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2z"></path>
+            </svg>` :
+            `<svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>`;
+        
+        const size = file.is_directory ? '' : formatBytes(file.size);
+        const date = file.modified ? new Date(file.modified * 1000).toLocaleDateString() : '';
+        
+        html += `
+            <div class="flex items-center justify-between p-3 hover:bg-slate-700 rounded-lg transition-colors">
+                <div class="flex items-center cursor-pointer flex-1" onclick="${file.is_directory ? `loadFiles('${file.path}')` : ''}">
+                    ${icon}
+                    <div class="flex-1">
+                        <div class="font-medium">${file.name}</div>
+                        ${!file.is_directory && size ? `<div class="text-sm text-gray-400">${size} • ${date}</div>` : ''}
+                    </div>
+                </div>
+                ${!file.is_directory ? `
+                    <div class="flex space-x-2">
+                        <button onclick="downloadFile('${file.path}')" class="p-2 text-blue-400 hover:bg-slate-600 rounded" title="Download">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-4-4m4 4l4-4m6 4H6"></path>
+                            </svg>
+                        </button>
+                        <button onclick="deleteFile('${file.path}')" class="p-2 text-red-400 hover:bg-slate-600 rounded" title="Delete">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    fileList.innerHTML = html;
+}
+
+function displayDirectoryTree() {
+    const treeContainer = document.getElementById('directory-tree');
+    if (!treeContainer) return;
+    
+    const directories = [
+        { name: 'Data Stolen', path: '/data_stolen', icon: '🗃️' },
+        { name: 'Scan Results', path: '/scan_results', icon: '📊' },
+        { name: 'Cracked Passwords', path: '/crackedpwd', icon: '🔓' },
+        { name: 'Vulnerabilities', path: '/vulnerabilities', icon: '⚠️' },
+        { name: 'Logs', path: '/logs', icon: '📋' },
+        { name: 'Backups', path: '/backups', icon: '💾' },
+        { name: 'Uploads', path: '/uploads', icon: '📤' }
+    ];
+    
+    let html = '<div class="space-y-1">';
+    directories.forEach(dir => {
+        html += `
+            <div class="flex items-center p-3 hover:bg-slate-700 rounded-lg cursor-pointer transition-colors" onclick="loadFiles('${dir.path}')">
+                <span class="mr-3">${dir.icon}</span>
+                <span>${dir.name}</span>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    treeContainer.innerHTML = html;
+}
+
+function updateCurrentPath(path) {
+    const pathElement = document.getElementById('current-path');
+    if (pathElement) {
+        pathElement.textContent = path;
+    }
+}
+
+function downloadFile(filePath) {
+    if (fileOperationInProgress) return;
+    
+    const downloadUrl = `/api/files/download?path=${encodeURIComponent(filePath)}`;
+    
+    // Create a temporary link to trigger download
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showFileSuccess(`Downloading ${filePath.split('/').pop()}`);
+}
+
+function deleteFile(filePath) {
+    if (fileOperationInProgress) return;
+    
+    const fileName = filePath.split('/').pop();
+    showFileConfirmModal(
+        'Delete File',
+        `Are you sure you want to delete "${fileName}"? This action cannot be undone.`,
+        () => {
+            fileOperationInProgress = true;
+            fetch('/api/files/delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ path: filePath })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showFileSuccess(`Deleted ${fileName}`);
+                    refreshFiles();
+                } else {
+                    showFileError(`Failed to delete file: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                showFileError(`Error deleting file: ${error.message}`);
+            })
+            .finally(() => {
+                fileOperationInProgress = false;
+                closeFileModal();
+            });
+        }
+    );
+}
+
+function uploadFile() {
+    // Create file input
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    
+    input.onchange = function(event) {
+        const files = event.target.files;
+        if (files.length === 0) return;
+        
+        const formData = new FormData();
+        
+        // Add all selected files
+        for (let file of files) {
+            formData.append('file', file);
+        }
+        
+        // Set upload path (default to uploads)
+        formData.append('path', '/uploads');
+        
+        fileOperationInProgress = true;
+        showFileLoading('Uploading files...');
+        
+        fetch('/api/files/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showFileSuccess(`Uploaded ${files.length} file(s)`);
+                refreshFiles();
+            } else {
+                showFileError(`Upload failed: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            showFileError(`Upload error: ${error.message}`);
+        })
+        .finally(() => {
+            fileOperationInProgress = false;
+        });
+    };
+    
+    input.click();
+}
+
+function clearFiles() {
+    showFileConfirmModal(
+        'Clear Files',
+        `
+        <div class="space-y-3">
+            <p>Choose the type of file clearing:</p>
+            <div class="space-y-2">
+                <label class="flex items-center">
+                    <input type="radio" name="clearType" value="light" checked class="mr-2">
+                    <span>Light Clear (logs, temporary files only)</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="radio" name="clearType" value="full" class="mr-2">
+                    <span>Full Clear (all data including configs)</span>
+                </label>
+            </div>
+        </div>
+        `,
+        () => {
+            const selectedType = document.querySelector('input[name="clearType"]:checked')?.value || 'light';
+            
+            fileOperationInProgress = true;
+            showFileLoading('Clearing files...');
+            
+            fetch('/api/files/clear', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ type: selectedType })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showFileSuccess(data.message);
+                    refreshFiles();
+                } else {
+                    showFileError(`Clear failed: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                showFileError(`Clear error: ${error.message}`);
+            })
+            .finally(() => {
+                fileOperationInProgress = false;
+                closeFileModal();
+            });
+        }
+    );
+}
+
+function refreshFiles() {
+    displayDirectoryTree();
+    loadFiles(currentDirectory);
+}
+
+function showFileSuccess(message) {
+    showNotification(message, 'success');
+}
+
+function showFileError(message) {
+    showNotification(message, 'error');
+}
+
+function showFileLoading(message) {
+    showNotification(message, 'info');
+}
+
+function showFileConfirmModal(title, content, onConfirm) {
+    const modal = document.getElementById('file-operations-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalContent = document.getElementById('modal-content');
+    const confirmBtn = document.getElementById('modal-confirm');
+    
+    if (!modal || !modalTitle || !modalContent || !confirmBtn) return;
+    
+    modalTitle.textContent = title;
+    modalContent.innerHTML = content;
+    
+    // Remove existing listeners
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    
+    // Add new listener
+    newConfirmBtn.addEventListener('click', onConfirm);
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeFileModal() {
+    const modal = document.getElementById('file-operations-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg max-w-sm transform translate-x-full transition-transform duration-300 ${
+        type === 'success' ? 'bg-green-600' : 
+        type === 'error' ? 'bg-red-600' : 
+        'bg-blue-600'
+    } text-white`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 3000);
+}
+
+// ============================================================================
 // GLOBAL FUNCTION EXPORTS (for HTML onclick handlers)
 // ============================================================================
 
@@ -1371,3 +1747,12 @@ window.stopOrchestrator = stopOrchestrator;
 window.triggerNetworkScan = triggerNetworkScan;
 window.triggerVulnScan = triggerVulnScan;
 window.refreshDashboard = refreshDashboard;
+
+// File Management Functions
+window.loadFiles = loadFiles;
+window.downloadFile = downloadFile;
+window.deleteFile = deleteFile;
+window.uploadFile = uploadFile;
+window.clearFiles = clearFiles;
+window.refreshFiles = refreshFiles;
+window.closeFileModal = closeFileModal;

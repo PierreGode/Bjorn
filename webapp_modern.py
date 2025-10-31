@@ -1009,6 +1009,338 @@ def trigger_vulnerability_scan():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================================================
+# FILE MANAGEMENT ENDPOINTS
+# ============================================================================
+
+@app.route('/api/files/list')
+def list_files_api():
+    """List files in a directory for file management"""
+    try:
+        path = request.args.get('path', '/')
+        
+        # Map root paths to actual directories
+        if path == '/' or path == '':
+            # List main directories
+            return jsonify([
+                {'name': 'data_stolen', 'is_directory': True, 'path': '/data_stolen'},
+                {'name': 'scan_results', 'is_directory': True, 'path': '/scan_results'},
+                {'name': 'crackedpwd', 'is_directory': True, 'path': '/crackedpwd'},
+                {'name': 'vulnerabilities', 'is_directory': True, 'path': '/vulnerabilities'},
+                {'name': 'logs', 'is_directory': True, 'path': '/logs'},
+                {'name': 'backups', 'is_directory': True, 'path': '/backups'},
+                {'name': 'uploads', 'is_directory': True, 'path': '/uploads'}
+            ])
+        
+        # Map paths to actual directories
+        actual_path = ""
+        if path.startswith('/data_stolen'):
+            actual_path = shared_data.datastolendir
+            if len(path) > 12:  # More than just '/data_stolen'
+                actual_path = os.path.join(actual_path, path[13:])
+        elif path.startswith('/scan_results'):
+            actual_path = shared_data.scan_results_dir
+            if len(path) > 13:  # More than just '/scan_results'
+                actual_path = os.path.join(actual_path, path[14:])
+        elif path.startswith('/crackedpwd'):
+            actual_path = shared_data.crackedpwddir
+            if len(path) > 11:  # More than just '/crackedpwd'
+                actual_path = os.path.join(actual_path, path[12:])
+        elif path.startswith('/vulnerabilities'):
+            actual_path = shared_data.vulnerabilities_dir
+            if len(path) > 16:  # More than just '/vulnerabilities'
+                actual_path = os.path.join(actual_path, path[17:])
+        elif path.startswith('/logs'):
+            actual_path = shared_data.datadir + '/logs'
+            if len(path) > 5:  # More than just '/logs'
+                actual_path = os.path.join(actual_path, path[6:])
+        elif path.startswith('/backups'):
+            actual_path = shared_data.backupdir
+            if len(path) > 8:  # More than just '/backups'
+                actual_path = os.path.join(actual_path, path[9:])
+        elif path.startswith('/uploads'):
+            actual_path = shared_data.upload_dir
+            if len(path) > 8:  # More than just '/uploads'
+                actual_path = os.path.join(actual_path, path[9:])
+        else:
+            return jsonify({'error': 'Invalid path'}), 400
+        
+        # Check if directory exists
+        if not os.path.exists(actual_path):
+            return jsonify([])
+        
+        # List files in directory
+        files = []
+        for entry in os.scandir(actual_path):
+            files.append({
+                'name': entry.name,
+                'is_directory': entry.is_dir(),
+                'path': os.path.join(path, entry.name),
+                'size': entry.stat().st_size if entry.is_file() else 0,
+                'modified': entry.stat().st_mtime
+            })
+        
+        # Sort files - directories first, then by name
+        files.sort(key=lambda x: (not x['is_directory'], x['name'].lower()))
+        
+        return jsonify(files)
+        
+    except Exception as e:
+        logger.error(f"Error listing files: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/files/download')
+def download_file_api():
+    """Download a file"""
+    try:
+        file_path = request.args.get('path')
+        if not file_path:
+            return jsonify({'error': 'File path required'}), 400
+        
+        # Map virtual path to actual path
+        actual_path = ""
+        if file_path.startswith('/data_stolen'):
+            actual_path = shared_data.datastolendir + file_path[12:]
+        elif file_path.startswith('/scan_results'):
+            actual_path = shared_data.scan_results_dir + file_path[13:]
+        elif file_path.startswith('/crackedpwd'):
+            actual_path = shared_data.crackedpwddir + file_path[11:]
+        elif file_path.startswith('/vulnerabilities'):
+            actual_path = shared_data.vulnerabilities_dir + file_path[16:]
+        elif file_path.startswith('/logs'):
+            actual_path = shared_data.datadir + '/logs' + file_path[5:]
+        elif file_path.startswith('/backups'):
+            actual_path = shared_data.backupdir + file_path[8:]
+        elif file_path.startswith('/uploads'):
+            actual_path = shared_data.upload_dir + file_path[8:]
+        else:
+            return jsonify({'error': 'Invalid file path'}), 400
+        
+        if not os.path.isfile(actual_path):
+            return jsonify({'error': 'File not found'}), 404
+        
+        return send_from_directory(
+            os.path.dirname(actual_path),
+            os.path.basename(actual_path),
+            as_attachment=True
+        )
+        
+    except Exception as e:
+        logger.error(f"Error downloading file: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/files/delete', methods=['POST'])
+def delete_file_api():
+    """Delete a file or directory"""
+    try:
+        data = request.get_json()
+        file_path = data.get('path')
+        
+        if not file_path:
+            return jsonify({'error': 'File path required'}), 400
+        
+        # Map virtual path to actual path
+        actual_path = ""
+        if file_path.startswith('/data_stolen'):
+            actual_path = shared_data.datastolendir + file_path[12:]
+        elif file_path.startswith('/scan_results'):
+            actual_path = shared_data.scan_results_dir + file_path[13:]
+        elif file_path.startswith('/crackedpwd'):
+            actual_path = shared_data.crackedpwddir + file_path[11:]
+        elif file_path.startswith('/vulnerabilities'):
+            actual_path = shared_data.vulnerabilities_dir + file_path[16:]
+        elif file_path.startswith('/logs'):
+            actual_path = shared_data.datadir + '/logs' + file_path[5:]
+        elif file_path.startswith('/backups'):
+            actual_path = shared_data.backupdir + file_path[8:]
+        elif file_path.startswith('/uploads'):
+            actual_path = shared_data.upload_dir + file_path[8:]
+        else:
+            return jsonify({'error': 'Invalid file path'}), 400
+        
+        if not os.path.exists(actual_path):
+            return jsonify({'error': 'File not found'}), 404
+        
+        # Delete file or directory
+        if os.path.isdir(actual_path):
+            import shutil
+            shutil.rmtree(actual_path)
+            logger.info(f"Deleted directory: {actual_path}")
+        else:
+            os.remove(actual_path)
+            logger.info(f"Deleted file: {actual_path}")
+        
+        return jsonify({'success': True, 'message': 'File deleted successfully'})
+        
+    except Exception as e:
+        logger.error(f"Error deleting file: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/files/upload', methods=['POST'])
+def upload_file_api():
+    """Upload a file"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        target_path = request.form.get('path', '/uploads')
+        
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Map virtual path to actual path
+        actual_dir = ""
+        if target_path.startswith('/uploads'):
+            actual_dir = shared_data.upload_dir
+        elif target_path.startswith('/backups'):
+            actual_dir = shared_data.backupdir
+        else:
+            return jsonify({'error': 'Invalid upload path'}), 400
+        
+        # Create directory if it doesn't exist
+        os.makedirs(actual_dir, exist_ok=True)
+        
+        # Save file
+        filename = file.filename
+        if not filename:
+            return jsonify({'error': 'Invalid filename'}), 400
+            
+        actual_path = os.path.join(actual_dir, filename)
+        file.save(actual_path)
+        
+        logger.info(f"File uploaded: {actual_path}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'File uploaded successfully',
+            'filename': filename
+        })
+        
+    except Exception as e:
+        logger.error(f"Error uploading file: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/files/clear', methods=['POST'])
+def clear_files_api():
+    """Clear files from specified directories"""
+    try:
+        data = request.get_json()
+        clear_type = data.get('type', 'light')  # 'light' or 'full'
+        
+        if clear_type == 'light':
+            # Clear only logs and temporary files (like clear_files_light)
+            command = f"""
+            rm -rf {shared_data.datadir}/*.log && 
+            rm -rf {shared_data.datastolendir}/* && 
+            rm -rf {shared_data.crackedpwddir}/* && 
+            rm -rf {shared_data.scan_results_dir}/* && 
+            rm -rf {shared_data.datadir}/logs/* && 
+            rm -rf {shared_data.vulnerabilities_dir}/*
+            """
+        else:
+            # Full clear (like clear_files)
+            command = f"""
+            rm -rf {shared_data.configdir}/*.json && 
+            rm -rf {shared_data.datadir}/*.csv && 
+            rm -rf {shared_data.datadir}/*.log && 
+            rm -rf {shared_data.backupdir}/* && 
+            rm -rf {shared_data.upload_dir}/* && 
+            rm -rf {shared_data.datastolendir}/* && 
+            rm -rf {shared_data.crackedpwddir}/* && 
+            rm -rf {shared_data.scan_results_dir}/* && 
+            rm -rf {shared_data.datadir}/logs/* && 
+            rm -rf {shared_data.vulnerabilities_dir}/*
+            """
+        
+        import subprocess
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        
+        if result.returncode == 0:
+            logger.info(f"Files cleared successfully ({clear_type} clear)")
+            return jsonify({
+                'success': True,
+                'message': f'Files cleared successfully ({clear_type} clear)'
+            })
+        else:
+            logger.error(f"Error clearing files: {result.stderr}")
+            return jsonify({'error': result.stderr}), 500
+        
+    except Exception as e:
+        logger.error(f"Error clearing files: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# Legacy endpoint compatibility
+@app.route('/list_files')
+def legacy_list_files():
+    """Legacy endpoint for file listing"""
+    try:
+        path = request.args.get('path', '/')
+        
+        # Use the same logic as list_files_api but return legacy format
+        if path == '/' or path == '':
+            return jsonify([
+                {'name': 'data_stolen', 'is_directory': True, 'children': []},
+                {'name': 'scan_results', 'is_directory': True, 'children': []},
+                {'name': 'crackedpwd', 'is_directory': True, 'children': []},
+                {'name': 'vulnerabilities', 'is_directory': True, 'children': []},
+                {'name': 'logs', 'is_directory': True, 'children': []},
+                {'name': 'backups', 'is_directory': True, 'children': []},
+                {'name': 'uploads', 'is_directory': True, 'children': []}
+            ])
+        
+        # For other paths, use the web_utils function
+        actual_path = ""
+        if path.startswith('/data_stolen'):
+            actual_path = shared_data.datastolendir
+        elif path.startswith('/scan_results'):
+            actual_path = shared_data.scan_results_dir
+        elif path.startswith('/crackedpwd'):
+            actual_path = shared_data.crackedpwddir
+        elif path.startswith('/vulnerabilities'):
+            actual_path = shared_data.vulnerabilities_dir
+        elif path.startswith('/logs'):
+            actual_path = shared_data.datadir + '/logs'
+        elif path.startswith('/backups'):
+            actual_path = shared_data.backupdir
+        elif path.startswith('/uploads'):
+            actual_path = shared_data.upload_dir
+        
+        if actual_path and os.path.exists(actual_path):
+            return jsonify(web_utils.list_files(actual_path))
+        else:
+            return jsonify([])
+        
+    except Exception as e:
+        logger.error(f"Error in legacy file listing: {e}")
+        return jsonify([])
+
+@app.route('/download_file')
+def legacy_download_file():
+    """Legacy endpoint for file download"""
+    try:
+        file_path = request.args.get('path')
+        if not file_path:
+            return "File path required", 400
+            
+        # Check if file exists in data_stolen directory
+        actual_path = os.path.join(shared_data.datastolendir, file_path)
+        if os.path.isfile(actual_path):
+            return send_from_directory(
+                os.path.dirname(actual_path),
+                os.path.basename(actual_path),
+                as_attachment=True
+            )
+        else:
+            return "File not found", 404
+    except Exception as e:
+        logger.error(f"Error in legacy file download: {e}")
+        return str(e), 500
+
+# ============================================================================
 # SIGNAL HANDLERS
 # ============================================================================
 
