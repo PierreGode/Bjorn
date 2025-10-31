@@ -386,14 +386,23 @@
                 
                 <!-- E-Paper Display Image -->
                 <div class="glass rounded-xl p-6">
-                    <h3 class="text-lg font-semibold mb-4 text-bjorn-400">Live E-Paper Display</h3>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-bjorn-400">Live E-Paper Display</h3>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm text-gray-400">Size:</span>
+                            <button onclick="toggleEpaperSize()" class="bg-bjorn-600 hover:bg-bjorn-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                                Resize
+                            </button>
+                        </div>
+                    </div>
                     <div class="flex justify-center">
                         <div id="epaper-display-container" class="relative inline-block bg-white rounded-lg p-4 shadow-2xl">
                             <img id="epaper-display-image" 
                                  src="" 
                                  alt="E-Paper Display" 
                                  class="max-w-full h-auto rounded border-2 border-gray-300"
-                                 style="max-height: 500px; image-rendering: crisp-edges;">
+                                 style="max-height: 800px; min-height: 400px; image-rendering: crisp-edges; cursor: pointer;"
+                                 onclick="toggleEpaperSize()">
                             <div id="epaper-loading" class="absolute inset-0 flex items-center justify-center bg-gray-100 rounded">
                                 <div class="text-center text-gray-600">
                                     <svg class="animate-spin h-8 w-8 mx-auto mb-2" fill="none" viewBox="0 0 24 24">
@@ -406,7 +415,8 @@
                         </div>
                     </div>
                     <p class="text-center text-gray-400 text-sm mt-4">
-                        This shows the exact same content as your Bjorn device's physical e-paper display
+                        This shows the exact same content as your Bjorn device's physical e-paper display<br>
+                        <span class="text-bjorn-400">💡 Click the display image or use the Resize button to cycle through different sizes</span>
                     </p>
                 </div>
             </div>

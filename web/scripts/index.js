@@ -165,7 +165,7 @@ function loadBjornDropdown() {
                 <img src="/web/images/bjorn_icon.png" alt="Icon_bjorn" style="height: 50px;">
             </button>
             <div class="dropdown-content">
-                <img id="screenImage_Home"  onclick="window.location.href='/bjorn.html'" src="screen.png" alt="Bjorn" style="width: 100%;">
+                <img id="screenImage_Home"  onclick="window.location.href='/bjorn.html'" src="screen.png" alt="Bjorn" style="width: 100%; min-height: 300px; image-rendering: crisp-edges;">
             </div>
         </div>
     `;

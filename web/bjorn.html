@@ -76,7 +76,9 @@
         function adjustImageHeight() {
             var windowHeight = window.innerHeight;
             var image = document.getElementById("screenImage_Home");
-            image.style.height = windowHeight + 'px';
+            // Use at least 600px or full window height, whichever is larger
+            var targetHeight = Math.max(windowHeight, 600);
+            image.style.height = targetHeight + 'px';
             image.style.width = 'auto'; // Maintain aspect ratio
         }
 

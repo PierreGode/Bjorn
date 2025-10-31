@@ -747,6 +747,32 @@ function refreshEpaperDisplay() {
     loadEpaperDisplay();
 }
 
+// E-Paper display size toggle functionality
+let epaperSizeMode = 'large'; // default to large size
+function toggleEpaperSize() {
+    const imgElement = document.getElementById('epaper-display-image');
+    
+    if (epaperSizeMode === 'large') {
+        // Switch to extra large
+        imgElement.style.maxHeight = '1200px';
+        imgElement.style.minHeight = '600px';
+        epaperSizeMode = 'xlarge';
+        addConsoleMessage('E-paper display size: Extra Large', 'info');
+    } else if (epaperSizeMode === 'xlarge') {
+        // Switch to medium
+        imgElement.style.maxHeight = '600px';
+        imgElement.style.minHeight = '300px';
+        epaperSizeMode = 'medium';
+        addConsoleMessage('E-paper display size: Medium', 'info');
+    } else {
+        // Switch back to large
+        imgElement.style.maxHeight = '800px';
+        imgElement.style.minHeight = '400px';
+        epaperSizeMode = 'large';
+        addConsoleMessage('E-paper display size: Large', 'info');
+    }
+}
+
 // Add e-paper display to auto-refresh
 function setupEpaperAutoRefresh() {
     setInterval(() => {
