@@ -269,15 +269,17 @@ class SharedData:
             self.width, self.height = self.epd_helper.epd.width, self.epd_helper.epd.height
             logger.info(f"EPD {self.config['epd_type']} initialized with size: {self.width}x{self.height}")
             
-            # Display test image to verify EPD is working
-            from PIL import ImageDraw
-            test_image = Image.new('1', (self.width, self.height), 255)
-            draw = ImageDraw.Draw(test_image)
-            draw.text((10, 10), "EPD Test", fill=0)
-            if self.config.get("reversed", False):
-                test_image = test_image.rotate(180)
-            self.epd_helper.epd.display(self.epd_helper.epd.getbuffer(test_image))
-            logger.info("Test image displayed on EPD.")
+            # NOTE: Test image code below was used to verify EPD hardware. 
+            # Commented out to allow normal Bjorn display to show.
+            # Uncomment if you need to test the display again.
+            # from PIL import ImageDraw
+            # test_image = Image.new('1', (self.width, self.height), 255)
+            # draw = ImageDraw.Draw(test_image)
+            # draw.text((10, 10), "EPD Test", fill=0)
+            # if self.config.get("reversed", False):
+            #     test_image = test_image.rotate(180)
+            # self.epd_helper.epd.display(self.epd_helper.epd.getbuffer(test_image))
+            # logger.info("Test image displayed on EPD.")
         except Exception as e:
             logger.error(f"Error initializing EPD display: {e}")
             raise
