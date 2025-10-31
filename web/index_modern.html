@@ -109,6 +109,9 @@
                     <button onclick="showTab('system')" class="nav-btn px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors" data-tab="system">
                         System
                     </button>
+                    <button onclick="showTab('netkb')" class="nav-btn px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors" data-tab="netkb">
+                        NetKB
+                    </button>
                     <button onclick="showTab('epaper')" class="nav-btn px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors" data-tab="epaper">
                         E-Paper
                     </button>
@@ -136,6 +139,7 @@
                 <button onclick="showTab('files')" class="block w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700">Files</button>
                 <button onclick="showTab('images')" class="block w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700">Images</button>
                 <button onclick="showTab('system')" class="block w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700">System</button>
+                <button onclick="showTab('netkb')" class="block w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700">NetKB</button>
                 <button onclick="showTab('epaper')" class="block w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700">E-Paper</button>
                 <button onclick="showTab('config')" class="block w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700">Config</button>
             </div>
@@ -712,6 +716,148 @@
                     <h3 class="font-semibold mb-4">Temperature Sensors</h3>
                     <div id="temperature-display" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <!-- Temperature data will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- NetKB Tab -->
+        <div id="netkb-tab" class="tab-content hidden">
+            <div class="glass rounded-xl p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">Network Knowledge Base</h2>
+                    <div class="flex space-x-3">
+                        <button onclick="exportNetkbData()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+                            </svg>
+                            Export Data
+                        </button>
+                        <button onclick="refreshNetkbData()" class="refresh-btn bg-bjorn-600 hover:bg-bjorn-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- NetKB Filter Controls -->
+                <div class="mb-6">
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <button onclick="filterNetkbData('all')" class="netkb-filter-btn px-3 py-1 rounded-full text-sm bg-bjorn-600 text-white" data-filter="all">
+                            All Entries
+                        </button>
+                        <button onclick="filterNetkbData('vulnerabilities')" class="netkb-filter-btn px-3 py-1 rounded-full text-sm bg-gray-600 text-white" data-filter="vulnerabilities">
+                            Vulnerabilities
+                        </button>
+                        <button onclick="filterNetkbData('services')" class="netkb-filter-btn px-3 py-1 rounded-full text-sm bg-gray-600 text-white" data-filter="services">
+                            Services
+                        </button>
+                        <button onclick="filterNetkbData('hosts')" class="netkb-filter-btn px-3 py-1 rounded-full text-sm bg-gray-600 text-white" data-filter="hosts">
+                            Hosts
+                        </button>
+                        <button onclick="filterNetkbData('exploits')" class="netkb-filter-btn px-3 py-1 rounded-full text-sm bg-gray-600 text-white" data-filter="exploits">
+                            Exploits
+                        </button>
+                    </div>
+                    
+                    <!-- Search Bar -->
+                    <div class="flex space-x-3">
+                        <input type="text" id="netkb-search" placeholder="Search NetKB entries..." 
+                               class="flex-1 bg-slate-700 text-white rounded px-3 py-2 border border-slate-600 focus:border-bjorn-400 focus:outline-none"
+                               onkeyup="searchNetkbData(this.value)">
+                        <button onclick="clearNetkbSearch()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- NetKB Statistics -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="glass-card p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-400" id="netkb-total-entries">--</div>
+                        <div class="text-sm text-gray-400">Total Entries</div>
+                    </div>
+                    <div class="glass-card p-4 text-center">
+                        <div class="text-2xl font-bold text-red-400" id="netkb-vulnerabilities">--</div>
+                        <div class="text-sm text-gray-400">Vulnerabilities</div>
+                    </div>
+                    <div class="glass-card p-4 text-center">
+                        <div class="text-2xl font-bold text-green-400" id="netkb-services">--</div>
+                        <div class="text-sm text-gray-400">Services</div>
+                    </div>
+                    <div class="glass-card p-4 text-center">
+                        <div class="text-2xl font-bold text-yellow-400" id="netkb-hosts">--</div>
+                        <div class="text-sm text-gray-400">Unique Hosts</div>
+                    </div>
+                </div>
+                
+                <!-- NetKB Data Table -->
+                <div class="glass-card">
+                    <div class="p-4 border-b border-gray-700">
+                        <h3 class="text-lg font-semibold">Knowledge Base Entries</h3>
+                    </div>
+                    <div class="p-4">
+                        <div id="netkb-table" class="overflow-x-auto max-h-96 scrollbar-thin">
+                            <table class="w-full text-sm">
+                                <thead class="bg-slate-800 sticky top-0">
+                                    <tr>
+                                        <th class="text-left p-3 border-b border-gray-700">Type</th>
+                                        <th class="text-left p-3 border-b border-gray-700">Host/Target</th>
+                                        <th class="text-left p-3 border-b border-gray-700">Service/Port</th>
+                                        <th class="text-left p-3 border-b border-gray-700">Description</th>
+                                        <th class="text-left p-3 border-b border-gray-700">Severity</th>
+                                        <th class="text-left p-3 border-b border-gray-700">Discovered</th>
+                                        <th class="text-left p-3 border-b border-gray-700">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="netkb-table-body">
+                                    <tr>
+                                        <td colspan="7" class="text-center text-gray-400 py-8">Loading NetKB data...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- NetKB Detail Modal -->
+                <div id="netkb-detail-modal" class="fixed inset-0 bg-black bg-opacity-80 hidden items-center justify-center z-50">
+                    <div class="glass rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 id="netkb-detail-title" class="text-lg font-semibold">Entry Details</h3>
+                            <button onclick="closeNetkbModal()" class="text-gray-400 hover:text-white">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div id="netkb-detail-content" class="space-y-4">
+                            <!-- Dynamic content -->
+                        </div>
+                        
+                        <div class="flex space-x-3 mt-6">
+                            <button id="netkb-exploit-btn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors hidden">
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                Exploit
+                            </button>
+                            <button id="netkb-research-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                Research Online
+                            </button>
+                            <button onclick="exportNetkbEntry()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+                                </svg>
+                                Export Entry
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

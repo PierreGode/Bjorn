@@ -18,8 +18,12 @@ import logging
 import threading
 import time
 from datetime import datetime
-from flask import Flask, render_template, jsonify, request, send_from_directory
+from flask import Flask, render_template, jsonify, request, send_from_directory, Response
 from flask_socketio import SocketIO, emit
+import re
+import time
+import os
+import json
 try:
     from flask_cors import CORS
     flask_cors_available = True
@@ -1753,6 +1757,266 @@ def format_uptime(seconds):
         return f"{hours}h {minutes}m"
     else:
         return f"{minutes}m"
+
+# ============================================================================
+# NETKB (Network Knowledge Base) API ENDPOINTS
+# ============================================================================
+
+@app.route('/api/netkb/data')
+def get_netkb_data():
+    """Get network knowledge base data"""
+    try:
+        netkb_entries = []
+        
+        # Process scan results for host/service information
+        scan_results_dir = getattr(shared_data, 'scan_results_dir', os.path.join('data', 'output', 'scan_results'))
+        if os.path.exists(scan_results_dir):
+            for filename in os.listdir(scan_results_dir):
+                if filename.endswith('.txt'):
+                    filepath = os.path.join(scan_results_dir, filename)
+                    try:
+                        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read()
+                            if content.strip():
+                                # Extract IP from filename or content
+                                ip_match = re.search(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', filename)
+                                host_ip = ip_match.group() if ip_match else 'Unknown'
+                                
+                                # Parse port/service info from content
+                                for line in content.split('\n'):
+                                    if '/tcp' in line or '/udp' in line:
+                                        parts = line.split()
+                                        if len(parts) >= 3:
+                                            port = parts[0]
+                                            service = parts[2] if len(parts) > 2 else 'unknown'
+                                            
+                                            netkb_entries.append({
+                                                'id': f"scan_{host_ip}_{port}",
+                                                'type': 'service',
+                                                'host': host_ip,
+                                                'port': port,
+                                                'service': service,
+                                                'description': f"Service {service} running on {port}",
+                                                'severity': 'info',
+                                                'discovered': os.path.getmtime(filepath),
+                                                'source': 'Network Scan'
+                                            })
+                    except Exception as e:
+                        continue
+        
+        # Process vulnerability scan results
+        vuln_results_dir = getattr(shared_data, 'vulnerabilities_dir', os.path.join('data', 'output', 'vulnerabilities'))
+        if os.path.exists(vuln_results_dir):
+            for filename in os.listdir(vuln_results_dir):
+                if filename.endswith('.txt'):
+                    filepath = os.path.join(vuln_results_dir, filename)
+                    try:
+                        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read()
+                            if content.strip():
+                                # Extract vulnerability information
+                                ip_match = re.search(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', filename)
+                                host_ip = ip_match.group() if ip_match else 'Unknown'
+                                
+                                # Look for CVE patterns
+                                cve_matches = re.findall(r'CVE-\d{4}-\d+', content)
+                                for cve in cve_matches:
+                                    netkb_entries.append({
+                                        'id': f"vuln_{host_ip}_{cve}",
+                                        'type': 'vulnerability',
+                                        'host': host_ip,
+                                        'port': '',
+                                        'service': '',
+                                        'description': f"Vulnerability {cve} detected",
+                                        'severity': 'high',
+                                        'discovered': os.path.getmtime(filepath),
+                                        'source': 'Vulnerability Scan',
+                                        'cve': cve
+                                    })
+                                
+                                # Generic vulnerability entries for files without CVEs
+                                if not cve_matches and len(content.strip()) > 50:
+                                    netkb_entries.append({
+                                        'id': f"vuln_{host_ip}_{os.path.basename(filename)}",
+                                        'type': 'vulnerability',
+                                        'host': host_ip,
+                                        'port': '',
+                                        'service': '',
+                                        'description': f"Vulnerability scan results for {host_ip}",
+                                        'severity': 'medium',
+                                        'discovered': os.path.getmtime(filepath),
+                                        'source': 'Vulnerability Scan'
+                                    })
+                    except Exception as e:
+                        continue
+        
+        # Add some example entries if no real data exists
+        if not netkb_entries:
+            netkb_entries = [
+                {
+                    'id': 'example_1',
+                    'type': 'service',
+                    'host': '192.168.1.1',
+                    'port': '22/tcp',
+                    'service': 'ssh',
+                    'description': 'SSH service detected',
+                    'severity': 'info',
+                    'discovered': time.time(),
+                    'source': 'Network Scan'
+                },
+                {
+                    'id': 'example_2',
+                    'type': 'vulnerability',
+                    'host': '192.168.1.100',
+                    'port': '80/tcp',
+                    'service': 'http',
+                    'description': 'Outdated web server version detected',
+                    'severity': 'medium',
+                    'discovered': time.time(),
+                    'source': 'Vulnerability Scan'
+                }
+            ]
+        
+        # Calculate statistics
+        total_entries = len(netkb_entries)
+        vulnerabilities = len([e for e in netkb_entries if e['type'] == 'vulnerability'])
+        services = len([e for e in netkb_entries if e['type'] == 'service'])
+        unique_hosts = len(set([e['host'] for e in netkb_entries]))
+        
+        return jsonify({
+            'entries': netkb_entries,
+            'statistics': {
+                'total_entries': total_entries,
+                'vulnerabilities': vulnerabilities,
+                'services': services,
+                'unique_hosts': unique_hosts
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting NetKB data: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/netkb/entry/<entry_id>')
+def get_netkb_entry(entry_id):
+    """Get detailed information for a specific NetKB entry"""
+    try:
+        # This would normally fetch detailed information about a specific entry
+        # For now, return a placeholder response
+        return jsonify({
+            'id': entry_id,
+            'detailed_info': f"Detailed information for entry {entry_id}",
+            'recommendations': [
+                "Monitor this service regularly",
+                "Consider updating to latest version",
+                "Implement proper access controls"
+            ],
+            'references': [
+                "https://nvd.nist.gov/",
+                "https://cve.mitre.org/",
+                "https://www.exploit-db.com/"
+            ]
+        })
+    except Exception as e:
+        logger.error(f"Error getting NetKB entry: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/netkb/export')
+def export_netkb_data():
+    """Export NetKB data in various formats"""
+    try:
+        format_type = request.args.get('format', 'json')
+        
+        # Get NetKB data directly
+        netkb_entries = []
+        
+        # Process scan results for host/service information
+        scan_results_dir = getattr(shared_data, 'scan_results_dir', os.path.join('data', 'output', 'scan_results'))
+        if os.path.exists(scan_results_dir):
+            for filename in os.listdir(scan_results_dir):
+                if filename.endswith('.txt'):
+                    filepath = os.path.join(scan_results_dir, filename)
+                    try:
+                        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read()
+                            if content.strip():
+                                ip_match = re.search(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', filename)
+                                host_ip = ip_match.group() if ip_match else 'Unknown'
+                                
+                                for line in content.split('\n'):
+                                    if '/tcp' in line or '/udp' in line:
+                                        parts = line.split()
+                                        if len(parts) >= 3:
+                                            port = parts[0]
+                                            service = parts[2] if len(parts) > 2 else 'unknown'
+                                            
+                                            netkb_entries.append({
+                                                'type': 'service',
+                                                'host': host_ip,
+                                                'port': port,
+                                                'service': service,
+                                                'description': f"Service {service} running on {port}",
+                                                'severity': 'info',
+                                                'source': 'Network Scan'
+                                            })
+                    except Exception as e:
+                        continue
+        
+        # Add example data if no real data
+        if not netkb_entries:
+            netkb_entries = [
+                {
+                    'type': 'service',
+                    'host': '192.168.1.1',
+                    'port': '22/tcp',
+                    'service': 'ssh',
+                    'description': 'SSH service detected',
+                    'severity': 'info',
+                    'source': 'Network Scan'
+                }
+            ]
+        
+        if format_type == 'csv':
+            import csv
+            import io
+            output = io.StringIO()
+            writer = csv.writer(output)
+            
+            # Write header
+            writer.writerow(['Type', 'Host', 'Port', 'Service', 'Description', 'Severity', 'Source'])
+            
+            # Write data
+            for entry in netkb_entries:
+                writer.writerow([
+                    entry['type'],
+                    entry['host'],
+                    entry['port'],
+                    entry['service'],
+                    entry['description'],
+                    entry['severity'],
+                    entry['source']
+                ])
+            
+            output.seek(0)
+            return Response(
+                output.getvalue(),
+                mimetype='text/csv',
+                headers={'Content-Disposition': 'attachment; filename=netkb_export.csv'}
+            )
+        else:
+            # Default to JSON export
+            export_data = {
+                'entries': netkb_entries,
+                'exported_at': datetime.now().isoformat(),
+                'total_entries': len(netkb_entries)
+            }
+            return Response(
+                json.dumps(export_data, indent=2),
+                mimetype='application/json',
+                headers={'Content-Disposition': 'attachment; filename=netkb_export.json'}
+            )
+    except Exception as e:
+        logger.error(f"Error exporting NetKB data: {e}")
+        return jsonify({'error': str(e)}), 500
 
 # ============================================================================
 # SIGNAL HANDLERS

@@ -287,6 +287,9 @@ async function loadTabData(tabName) {
         case 'system':
             loadSystemData();
             break;
+        case 'netkb':
+            loadNetkbData();
+            break;
         case 'epaper':
             await loadEpaperDisplay();
             break;
@@ -2225,6 +2228,330 @@ function showSystemError(message) {
 }
 
 // ============================================================================
+// NETKB (Network Knowledge Base) FUNCTIONS
+// ============================================================================
+
+let currentNetkbFilter = 'all';
+let netkbData = [];
+
+function loadNetkbData() {
+    fetchNetkbData();
+}
+
+function fetchNetkbData() {
+    fetch('/api/netkb/data')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showNetkbError('Failed to load NetKB data: ' + data.error);
+                return;
+            }
+            netkbData = data.entries || [];
+            updateNetkbStatistics(data.statistics || {});
+            displayNetkbData(netkbData);
+        })
+        .catch(error => {
+            console.error('Error fetching NetKB data:', error);
+            showNetkbError('Failed to load NetKB data');
+        });
+}
+
+function updateNetkbStatistics(stats) {
+    const totalEntries = document.getElementById('netkb-total-entries');
+    const vulnerabilities = document.getElementById('netkb-vulnerabilities');
+    const services = document.getElementById('netkb-services');
+    const hosts = document.getElementById('netkb-hosts');
+    
+    if (totalEntries) totalEntries.textContent = stats.total_entries || 0;
+    if (vulnerabilities) vulnerabilities.textContent = stats.vulnerabilities || 0;
+    if (services) services.textContent = stats.services || 0;
+    if (hosts) hosts.textContent = stats.unique_hosts || 0;
+}
+
+function displayNetkbData(entries) {
+    const tableBody = document.getElementById('netkb-table-body');
+    if (!tableBody) return;
+    
+    if (entries.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-400 py-8">No NetKB entries found</td></tr>';
+        return;
+    }
+    
+    let html = '';
+    entries.forEach(entry => {
+        const severityColor = getSeverityColor(entry.severity);
+        const typeIcon = getTypeIcon(entry.type);
+        const discoveredDate = new Date(entry.discovered * 1000).toLocaleDateString();
+        
+        html += `
+            <tr class="border-b border-gray-800 hover:bg-slate-800 cursor-pointer" onclick="showNetkbEntryDetail('${entry.id}')">
+                <td class="p-3">
+                    <span class="inline-flex items-center">
+                        ${typeIcon}
+                        <span class="ml-2 capitalize">${entry.type}</span>
+                    </span>
+                </td>
+                <td class="p-3 font-mono text-sm">${entry.host}</td>
+                <td class="p-3 font-mono text-sm">${entry.port || '-'}</td>
+                <td class="p-3">
+                    <span class="font-medium">${entry.service || entry.description}</span>
+                    <div class="text-xs text-gray-400 mt-1">${entry.description}</div>
+                </td>
+                <td class="p-3">
+                    <span class="px-2 py-1 rounded text-xs font-medium ${severityColor}">
+                        ${entry.severity}
+                    </span>
+                </td>
+                <td class="p-3 text-sm text-gray-400">${discoveredDate}</td>
+                <td class="p-3">
+                    <div class="flex space-x-2">
+                        <button onclick="event.stopPropagation(); showNetkbEntryDetail('${entry.id}')" 
+                                class="text-blue-400 hover:text-blue-300 text-xs">
+                            View
+                        </button>
+                        ${entry.type === 'vulnerability' ? 
+                            `<button onclick="event.stopPropagation(); researchVulnerability('${entry.cve || entry.id}')" 
+                                     class="text-orange-400 hover:text-orange-300 text-xs">
+                                Research
+                            </button>` : ''
+                        }
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tableBody.innerHTML = html;
+}
+
+function getSeverityColor(severity) {
+    switch (severity.toLowerCase()) {
+        case 'critical': return 'bg-red-900 text-red-200';
+        case 'high': return 'bg-red-800 text-red-100';
+        case 'medium': return 'bg-yellow-800 text-yellow-100';
+        case 'low': return 'bg-blue-800 text-blue-100';
+        case 'info': return 'bg-gray-700 text-gray-200';
+        default: return 'bg-gray-600 text-gray-200';
+    }
+}
+
+function getTypeIcon(type) {
+    switch (type.toLowerCase()) {
+        case 'vulnerability':
+            return '<svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+        case 'service':
+            return '<svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>';
+        case 'host':
+            return '<svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>';
+        case 'exploit':
+            return '<svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>';
+        default:
+            return '<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+    }
+}
+
+function filterNetkbData(filterType) {
+    currentNetkbFilter = filterType;
+    
+    // Update button states
+    document.querySelectorAll('.netkb-filter-btn').forEach(btn => {
+        if (btn.dataset.filter === filterType) {
+            btn.classList.remove('bg-gray-600');
+            btn.classList.add('bg-bjorn-600');
+        } else {
+            btn.classList.remove('bg-bjorn-600');
+            btn.classList.add('bg-gray-600');
+        }
+    });
+    
+    // Filter and display data
+    let filteredData = netkbData;
+    if (filterType !== 'all') {
+        filteredData = netkbData.filter(entry => entry.type === filterType);
+    }
+    
+    displayNetkbData(filteredData);
+}
+
+function searchNetkbData(searchTerm) {
+    const filtered = netkbData.filter(entry => {
+        const searchLower = searchTerm.toLowerCase();
+        return entry.host.toLowerCase().includes(searchLower) ||
+               entry.service.toLowerCase().includes(searchLower) ||
+               entry.description.toLowerCase().includes(searchLower) ||
+               entry.type.toLowerCase().includes(searchLower);
+    });
+    
+    displayNetkbData(filtered);
+}
+
+function clearNetkbSearch() {
+    const searchInput = document.getElementById('netkb-search');
+    if (searchInput) {
+        searchInput.value = '';
+        filterNetkbData(currentNetkbFilter);
+    }
+}
+
+function showNetkbEntryDetail(entryId) {
+    const entry = netkbData.find(e => e.id === entryId);
+    if (!entry) return;
+    
+    const modal = document.getElementById('netkb-detail-modal');
+    const title = document.getElementById('netkb-detail-title');
+    const content = document.getElementById('netkb-detail-content');
+    
+    if (!modal || !title || !content) return;
+    
+    title.textContent = `${entry.type.toUpperCase()}: ${entry.host}`;
+    
+    const discoveredDate = new Date(entry.discovered * 1000).toLocaleString();
+    const severityColor = getSeverityColor(entry.severity);
+    
+    content.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-3">
+                <div>
+                    <label class="text-sm text-gray-400">Host/Target</label>
+                    <div class="font-mono text-lg">${entry.host}</div>
+                </div>
+                <div>
+                    <label class="text-sm text-gray-400">Service/Port</label>
+                    <div class="font-mono">${entry.port || 'N/A'} ${entry.service ? '(' + entry.service + ')' : ''}</div>
+                </div>
+                <div>
+                    <label class="text-sm text-gray-400">Type</label>
+                    <div class="capitalize">${entry.type}</div>
+                </div>
+                <div>
+                    <label class="text-sm text-gray-400">Severity</label>
+                    <div><span class="px-2 py-1 rounded text-sm ${severityColor}">${entry.severity}</span></div>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-sm text-gray-400">Description</label>
+                    <div class="text-sm">${entry.description}</div>
+                </div>
+                <div>
+                    <label class="text-sm text-gray-400">Source</label>
+                    <div class="text-sm">${entry.source}</div>
+                </div>
+                <div>
+                    <label class="text-sm text-gray-400">Discovered</label>
+                    <div class="text-sm">${discoveredDate}</div>
+                </div>
+                ${entry.cve ? `
+                <div>
+                    <label class="text-sm text-gray-400">CVE</label>
+                    <div class="font-mono text-sm">${entry.cve}</div>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+        
+        <div class="mt-6 p-4 bg-slate-800 rounded-lg">
+            <h4 class="font-medium mb-2">Recommendations</h4>
+            <ul class="text-sm text-gray-300 space-y-1">
+                <li>• Monitor this ${entry.type} regularly for changes</li>
+                <li>• Consider implementing additional security measures</li>
+                <li>• Review access controls and firewall rules</li>
+                ${entry.type === 'vulnerability' ? '<li>• Apply security patches if available</li>' : ''}
+                ${entry.type === 'service' ? '<li>• Ensure service is properly configured and updated</li>' : ''}
+            </ul>
+        </div>
+    `;
+    
+    // Show/hide exploit button based on entry type
+    const exploitBtn = document.getElementById('netkb-exploit-btn');
+    if (exploitBtn) {
+        if (entry.type === 'vulnerability') {
+            exploitBtn.classList.remove('hidden');
+            exploitBtn.onclick = () => exploitVulnerability(entry);
+        } else {
+            exploitBtn.classList.add('hidden');
+        }
+    }
+    
+    // Update research button
+    const researchBtn = document.getElementById('netkb-research-btn');
+    if (researchBtn) {
+        researchBtn.onclick = () => researchEntry(entry);
+    }
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeNetkbModal() {
+    const modal = document.getElementById('netkb-detail-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+function refreshNetkbData() {
+    fetchNetkbData();
+    showNetkbSuccess('NetKB data refreshed');
+}
+
+function exportNetkbData() {
+    const format = prompt('Export format (json/csv):', 'json');
+    if (format && (format === 'json' || format === 'csv')) {
+        window.open(`/api/netkb/export?format=${format}`, '_blank');
+        showNetkbSuccess(`NetKB data exported as ${format.toUpperCase()}`);
+    }
+}
+
+function exportNetkbEntry() {
+    // Export the currently viewed entry
+    showNetkbInfo('Individual entry export feature coming soon');
+}
+
+function researchEntry(entry) {
+    let searchUrl = 'https://www.google.com/search?q=';
+    let searchTerm = '';
+    
+    if (entry.cve) {
+        searchTerm = entry.cve;
+    } else if (entry.service) {
+        searchTerm = `${entry.service} vulnerability exploit`;
+    } else {
+        searchTerm = `${entry.host} ${entry.description}`;
+    }
+    
+    window.open(searchUrl + encodeURIComponent(searchTerm), '_blank');
+    showNetkbInfo(`Researching: ${searchTerm}`);
+}
+
+function researchVulnerability(cveOrId) {
+    let searchUrl = 'https://nvd.nist.gov/vuln/search/results?form_type=Basic&results_type=overview&query=';
+    window.open(searchUrl + encodeURIComponent(cveOrId), '_blank');
+    showNetkbInfo(`Researching vulnerability: ${cveOrId}`);
+}
+
+function exploitVulnerability(entry) {
+    const confirmMsg = `Are you sure you want to attempt exploitation of ${entry.cve || entry.description} on ${entry.host}?`;
+    if (confirm(confirmMsg)) {
+        showNetkbInfo('Exploitation feature not yet implemented - this would trigger automated exploit attempts');
+        // TODO: Implement actual exploitation logic
+    }
+}
+
+function showNetkbSuccess(message) {
+    showNotification(message, 'success');
+}
+
+function showNetkbError(message) {
+    showNotification(message, 'error');
+}
+
+function showNetkbInfo(message) {
+    showNotification(message, 'info');
+}
+
+// ============================================================================
 // GLOBAL FUNCTION EXPORTS (for HTML onclick handlers)
 // ============================================================================
 
@@ -2269,3 +2596,17 @@ window.refreshImages = refreshImages;
 window.loadSystemData = loadSystemData;
 window.sortProcesses = sortProcesses;
 window.refreshSystemStatus = refreshSystemStatus;
+
+// NetKB Functions
+window.loadNetkbData = loadNetkbData;
+window.refreshNetkbData = refreshNetkbData;
+window.filterNetkbData = filterNetkbData;
+window.searchNetkbData = searchNetkbData;
+window.clearNetkbSearch = clearNetkbSearch;
+window.showNetkbEntryDetail = showNetkbEntryDetail;
+window.closeNetkbModal = closeNetkbModal;
+window.exportNetkbData = exportNetkbData;
+window.exportNetkbEntry = exportNetkbEntry;
+window.researchEntry = researchEntry;
+window.researchVulnerability = researchVulnerability;
+window.exploitVulnerability = exploitVulnerability;
