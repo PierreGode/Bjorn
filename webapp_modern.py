@@ -82,14 +82,52 @@ def safe_bool(value, default=False):
         return default
 
 
+def is_ap_client_request():
+    """Check if the request is coming from an AP client (192.168.4.x)"""
+    try:
+        client_ip = request.environ.get('REMOTE_ADDR', '')
+        # Check if request is from AP network (192.168.4.x)
+        return client_ip.startswith('192.168.4.') and client_ip != '192.168.4.1'
+    except:
+        return False
+
+
 # ============================================================================
 # STATIC FILE ROUTES
 # ============================================================================
 
 @app.route('/')
 def index():
-    """Serve the main dashboard page"""
-    return send_from_directory('web', 'index_modern.html')
+    """Serve the main dashboard page or captive portal for AP clients"""
+    if is_ap_client_request():
+        # Serve captive portal for AP clients
+        return send_from_directory('web', 'captive_portal.html')
+    else:
+        # Serve main dashboard for regular users
+        return send_from_directory('web', 'index_modern.html')
+
+
+# Add explicit captive portal route
+@app.route('/portal')
+def captive_portal():
+    """Explicit captive portal route"""
+    return send_from_directory('web', 'captive_portal.html')
+
+
+# Captive portal detection routes for mobile devices
+@app.route('/generate_204')
+@app.route('/gen_204')
+@app.route('/connecttest.txt')
+@app.route('/success.txt')
+@app.route('/ncsi.txt')
+def captive_portal_detection():
+    """Handle captive portal detection requests from mobile devices"""
+    if is_ap_client_request():
+        # Redirect to captive portal for AP clients
+        return '''<html><head><meta http-equiv="refresh" content="0; url=/portal"></head><body><a href="/portal">Click here for WiFi setup</a></body></html>''', 302
+    else:
+        # Return success for non-AP clients
+        return "Success", 204
 
 
 @app.route('/<path:filename>')
@@ -526,15 +564,30 @@ def get_wifi_networks():
         if wifi_manager and hasattr(wifi_manager, 'wifi_manager'):
             available = wifi_manager.wifi_manager.get_available_networks()
             known = wifi_manager.wifi_manager.get_known_networks()
-            return jsonify({
-                'available': available,
-                'known': known
-            })
+            
+            # For captive portal, return networks in a simple format
+            if is_ap_client_request():
+                return jsonify({
+                    'success': True,
+                    'networks': available if available else []
+                })
+            else:
+                # For main interface, return detailed format
+                return jsonify({
+                    'success': True,
+                    'available': available,
+                    'known': known
+                })
         else:
-            return jsonify({'available': [], 'known': []})
+            return jsonify({
+                'success': False,
+                'networks': [],
+                'available': [], 
+                'known': []
+            })
     except Exception as e:
         logger.error(f"Error getting Wi-Fi networks: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/wifi/connect', methods=['POST'])
 def connect_wifi():
@@ -542,7 +595,7 @@ def connect_wifi():
     try:
         data = request.get_json()
         if not data or 'ssid' not in data:
-            return jsonify({'error': 'SSID is required'}), 400
+            return jsonify({'success': False, 'error': 'SSID is required'}), 400
         
         ssid = data['ssid']
         password = data.get('password')
@@ -551,7 +604,7 @@ def connect_wifi():
         
         wifi_manager = getattr(shared_data, 'bjorn_instance', None)
         if not wifi_manager or not hasattr(wifi_manager, 'wifi_manager'):
-            return jsonify({'error': 'Wi-Fi manager not available'}), 503
+            return jsonify({'success': False, 'error': 'Wi-Fi manager not available'}), 503
         
         # Try to connect
         success = wifi_manager.wifi_manager.connect_to_network(ssid, password)
@@ -560,14 +613,18 @@ def connect_wifi():
             # Add to known networks if connection successful
             wifi_manager.wifi_manager.add_known_network(ssid, password, priority)
         
+        message = 'Connected successfully' if success else 'Connection failed'
+        if success and is_ap_client_request():
+            message = 'Connected successfully! Bjorn will now use this network. You can disconnect from this AP.'
+        
         return jsonify({
             'success': success,
-            'message': 'Connected successfully' if success else 'Connection failed'
+            'message': message
         })
         
     except Exception as e:
         logger.error(f"Error connecting to Wi-Fi: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/wifi/disconnect', methods=['POST'])
 def disconnect_wifi():

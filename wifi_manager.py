@@ -1109,8 +1109,8 @@ rsn_pairwise=CCMP
             self.ap_logger.debug("Creating dnsmasq configuration file...")
             config_content = f"""interface={self.ap_interface}
 dhcp-range=192.168.4.2,192.168.4.20,255.255.255.0,24h
-# Disable DNS server functionality to avoid port 53 conflicts
-port=0
+# Enable DNS for captive portal functionality
+port=53
 # Use alternative DHCP port if needed
 dhcp-authoritative
 # Bind only to the AP interface to avoid conflicts
@@ -1119,14 +1119,24 @@ bind-interfaces
 log-dhcp
 # Set gateway to the AP interface IP
 dhcp-option=3,{self.ap_ip}
-# Set DNS servers for clients (use public DNS)
-dhcp-option=6,8.8.8.8,8.8.4.4
+# Set DNS servers for clients (point to ourselves for captive portal)
+dhcp-option=6,{self.ap_ip}
+# Captive portal DNS redirection - redirect all domains to our AP
+address=/#/{self.ap_ip}
+# Allow some specific domains to work normally for connectivity tests
+server=/time.android.com/8.8.8.8
+server=/pool.ntp.org/8.8.8.8
+# Stop reading /etc/resolv.conf for upstream servers
+no-resolv
+# Add upstream servers manually
+server=8.8.8.8
+server=8.8.4.4
 """
             
             with open('/tmp/bjorn/dnsmasq.conf', 'w') as f:
                 f.write(config_content)
             
-            self.logger.info("Created dnsmasq configuration")
+            self.logger.info("Created dnsmasq configuration with captive portal DNS")
             self.ap_logger.info("Created dnsmasq configuration at /tmp/bjorn/dnsmasq.conf")
             self.ap_logger.debug(f"Dnsmasq config content:\n{config_content}")
             return True
