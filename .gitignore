@@ -146,6 +146,9 @@ backup/uploads/
 # Configuration files (contains sensitive data)
 config/shared_config.json
 
+# Actions configuration (auto-generated but preserve for runtime)
+# config/actions.json
+
 # Installation and runtime logs
 install_*.log
 /var/log/bjorn_install/
