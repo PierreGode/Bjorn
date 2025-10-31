@@ -808,8 +808,9 @@ def get_manual_targets():
     """Get available targets for manual attacks"""
     try:
         targets = []
+        target_ips = set()  # Track unique IPs to avoid duplicates
         
-        # Read from the live status file
+        # Read from the live status file first
         if os.path.exists(shared_data.livestatusfile):
             with open(shared_data.livestatusfile, 'r') as file:
                 reader = csv.DictReader(file)
@@ -824,12 +825,73 @@ def get_manual_targets():
                             if key.isdigit() and value:  # Port columns with values
                                 ports.append(key)
                         
-                        if ip:
+                        if ip and ip not in target_ips:
                             targets.append({
                                 'ip': ip,
                                 'hostname': hostname,
-                                'ports': ports
+                                'ports': ports,
+                                'source': 'Network Scan'
                             })
+                            target_ips.add(ip)
+        
+        # Also include hosts from NetKB data
+        try:
+            # Get NetKB data
+            netkb_entries = []
+            
+            # Process scan results for host/service information
+            scan_results_dir = getattr(shared_data, 'scan_results_dir', os.path.join('data', 'output', 'scan_results'))
+            if os.path.exists(scan_results_dir):
+                for filename in os.listdir(scan_results_dir):
+                    if filename.endswith('.txt'):
+                        filepath = os.path.join(scan_results_dir, filename)
+                        try:
+                            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                                content = f.read()
+                                if content.strip():
+                                    # Extract IP from filename or content
+                                    ip_match = re.search(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', filename)
+                                    host_ip = ip_match.group() if ip_match else None
+                                    
+                                    if host_ip and host_ip not in target_ips:
+                                        # Parse port/service info from content
+                                        ports = []
+                                        for line in content.split('\n'):
+                                            if '/tcp' in line or '/udp' in line:
+                                                parts = line.split()
+                                                if len(parts) >= 1:
+                                                    port = parts[0].split('/')[0]  # Extract port number only
+                                                    if port.isdigit() and port not in ports:
+                                                        ports.append(port)
+                                        
+                                        targets.append({
+                                            'ip': host_ip,
+                                            'hostname': host_ip,  # Use IP as hostname if no other info
+                                            'ports': ports,
+                                            'source': 'NetKB'
+                                        })
+                                        target_ips.add(host_ip)
+                        except Exception as e:
+                            continue
+            
+            # Add example targets if no real data exists
+            if not targets:
+                targets = [
+                    {
+                        'ip': '192.168.1.1',
+                        'hostname': '192.168.1.1',
+                        'ports': ['22', '80', '443'],
+                        'source': 'Example'
+                    },
+                    {
+                        'ip': '192.168.1.100',
+                        'hostname': '192.168.1.100',
+                        'ports': ['80', '443'],
+                        'source': 'Example'
+                    }
+                ]
+        except Exception as e:
+            logger.error(f"Error processing NetKB data for targets: {e}")
         
         return jsonify({'targets': targets})
         

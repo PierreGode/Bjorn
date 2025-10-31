@@ -268,6 +268,15 @@ class SharedData:
             self.epd_helper.init_full_update()
             self.width, self.height = self.epd_helper.epd.width, self.epd_helper.epd.height
             logger.info(f"EPD {self.config['epd_type']} initialized with size: {self.width}x{self.height}")
+        except Exception as e:
+            logger.error(f"Error initializing EPD display: {e}")
+            logger.warning("Continuing without EPD display support")
+            # Set default values and continue without EPD
+            self.epd_helper = None
+            self.width = 122  # Default width from config
+            self.height = 250  # Default height from config
+            self.screen_reversed = False
+            self.web_screen_reversed = False
             
             # NOTE: Test image code below was used to verify EPD hardware. 
             # Commented out to allow normal Bjorn display to show.

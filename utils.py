@@ -7,7 +7,11 @@ import json
 import csv
 import zipfile
 import uuid
-import cgi
+try:
+    import cgi
+except ImportError:
+    # cgi module was removed in Python 3.13, use alternative for file uploads
+    cgi = None
 import io
 import importlib
 import logging
@@ -229,6 +233,14 @@ class WebUtils:
 
     def restore(self, handler):
         try:
+            if cgi is None:
+                # CGI module not available, send error response
+                handler.send_response(500)
+                handler.send_header("Content-type", "application/json")
+                handler.end_headers()
+                handler.wfile.write(json.dumps({"status": "error", "message": "File upload not supported in this Python version"}).encode('utf-8'))
+                return
+                
             content_length = int(handler.headers['Content-Length'])
             field_data = handler.rfile.read(content_length)
             field_storage = cgi.FieldStorage(fp=io.BytesIO(field_data), headers=handler.headers, environ={'REQUEST_METHOD': 'POST'})
