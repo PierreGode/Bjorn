@@ -382,56 +382,105 @@ setup_bjorn() {
     # Install packages that can fail separately to handle errors
     log "INFO" "Installing core Python packages..."
     
-    # Try to install RPi.GPIO and spidev
-    pip3 install --break-system-packages RPi.GPIO==0.7.1 spidev==3.5 || {
-        log "WARNING" "Failed to install RPi.GPIO or spidev, trying without version pinning..."
-        pip3 install --break-system-packages RPi.GPIO spidev
+    # Function to check if a Python package is installed
+    check_python_package() {
+        python3 -c "import $1" 2>/dev/null
+        return $?
     }
+    
+    # Try to install RPi.GPIO and spidev
+    if ! check_python_package "RPi.GPIO"; then
+        log "INFO" "Installing RPi.GPIO and spidev..."
+        pip3 install --break-system-packages RPi.GPIO==0.7.1 spidev==3.5 || {
+            log "WARNING" "Failed to install RPi.GPIO or spidev, trying without version pinning..."
+            pip3 install --break-system-packages RPi.GPIO spidev
+        }
+    else
+        log "INFO" "RPi.GPIO already installed, skipping"
+    fi
     
     # Install Pillow - use system package if pip fails
-    pip3 install --break-system-packages "Pillow>=10.0.0" || {
-        log "WARNING" "Pillow pip install failed, using system package python3-pil"
-        apt-get install -y python3-pil
-    }
+    if ! check_python_package "PIL"; then
+        log "INFO" "Installing Pillow..."
+        pip3 install --break-system-packages "Pillow>=10.0.0" || {
+            log "WARNING" "Pillow pip install failed, using system package python3-pil"
+            apt-get install -y python3-pil
+        }
+    else
+        log "INFO" "Pillow already installed, skipping"
+    fi
     
     # Install numpy and pandas - prefer system packages but fallback to pip
-    log "INFO" "Installing numpy and pandas..."
-    pip3 install --break-system-packages --retries 5 --timeout 300 "numpy>=1.24.0" "pandas>=2.0.0" || {
-        log "WARNING" "Pandas/numpy pip install failed, relying on system packages"
-    }
+    log "INFO" "Checking numpy and pandas..."
+    if ! check_python_package "numpy" || ! check_python_package "pandas"; then
+        log "INFO" "Installing numpy and pandas (this may take a while)..."
+        pip3 install --break-system-packages --retries 5 --timeout 300 "numpy>=1.24.0" "pandas>=2.0.0" || {
+            log "WARNING" "Pandas/numpy pip install failed, relying on system packages"
+        }
+    else
+        log "INFO" "numpy and pandas already installed, skipping"
+    fi
     
     # Install remaining packages from requirements.txt with retry logic
-    log "INFO" "Installing remaining Python packages (with network retries)..."
+    log "INFO" "Installing remaining Python packages..."
     
-    # Array of packages to install
-    declare -a packages=(
-        "rich>=13.0.0"
-        "netifaces==0.11.0"
-        "ping3>=4.0.0"
-        "get-mac>=0.9.0"
-        "paramiko>=3.0.0"
-        "smbprotocol>=1.10.0"
-        "pysmb>=1.2.0"
-        "pymysql>=1.0.0"
-        "python-nmap>=0.7.0"
-        "flask>=3.0.0"
-        "flask-socketio>=5.3.0"
-        "flask-cors>=4.0.0"
+    # Array of packages to install with their import names
+    declare -A packages=(
+        ["rich>=13.0.0"]="rich"
+        ["netifaces==0.11.0"]="netifaces"
+        ["ping3>=4.0.0"]="ping3"
+        ["get-mac>=0.9.0"]="get_mac"
+        ["paramiko>=3.0.0"]="paramiko"
+        ["smbprotocol>=1.10.0"]="smbprotocol"
+        ["pysmb>=1.2.0"]="smb"
+        ["pymysql>=1.0.0"]="pymysql"
+        ["python-nmap>=0.7.0"]="nmap"
+        ["flask>=3.0.0"]="flask"
+        ["flask-socketio>=5.3.0"]="flask_socketio"
+        ["flask-cors>=4.0.0"]="flask_cors"
     )
     
-    # Install each package individually with retries
-    for package in "${packages[@]}"; do
-        log "INFO" "Installing $package..."
-        pip3 install --break-system-packages --retries 5 --timeout 300 "$package" || {
-            log "WARNING" "Failed to install $package after retries. Continuing..."
-        }
+    # Install each package individually with retries if not already installed
+    for package in "${!packages[@]}"; do
+        import_name="${packages[$package]}"
+        if check_python_package "$import_name"; then
+            log "INFO" "$package already installed, skipping"
+        else
+            log "INFO" "Installing $package..."
+            pip3 install --break-system-packages --retries 3 --timeout 180 "$package" || {
+                log "WARNING" "Failed to install $package after retries. Continuing..."
+            }
+        fi
     done
     
     check_success "Installed Python requirements"
 
+    # Configure modern webapp by default
+    log "INFO" "Configuring modern web interface..."
+    if [ -f "$BJORN_PATH/Bjorn.py" ] && [ -f "$BJORN_PATH/webapp_modern.py" ]; then
+        # Backup original Bjorn.py if not already backed up
+        if [ ! -f "$BJORN_PATH/Bjorn.py.original" ]; then
+            cp "$BJORN_PATH/Bjorn.py" "$BJORN_PATH/Bjorn.py.original"
+        fi
+        
+        # Update Bjorn.py to use modern webapp
+        if grep -q "from webapp import web_thread" "$BJORN_PATH/Bjorn.py"; then
+            sed -i 's/from webapp import web_thread/# Old webapp - replaced with modern\n# from webapp import web_thread\nfrom webapp_modern import run_server as web_thread/' "$BJORN_PATH/Bjorn.py"
+            log "SUCCESS" "Configured to use modern web interface"
+        else
+            log "INFO" "Modern webapp already configured or different setup detected"
+        fi
+    else
+        log "WARNING" "Modern webapp files not found, using default configuration"
+    fi
+
     # Set correct permissions
     chown -R $BJORN_USER:$BJORN_USER /home/$BJORN_USER/Bjorn
     chmod -R 755 /home/$BJORN_USER/Bjorn
+    
+    # Make utility scripts executable
+    chmod +x $BJORN_PATH/switch_webapp.sh 2>/dev/null || true
+    chmod +x $BJORN_PATH/kill_port_8000.sh 2>/dev/null || true
     
     # Add bjorn user to necessary groups
     usermod -a -G spi,gpio,i2c $BJORN_USER

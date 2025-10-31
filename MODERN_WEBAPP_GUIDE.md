@@ -20,17 +20,32 @@ The Bjorn web interface has been completely modernized with:
 
 ## 📦 Installation
 
-### Option 1: Fresh Install (Recommended)
+### New Installation (Recommended)
+The modern interface is now included in the main installer:
 ```bash
 cd /home/bjorn/Bjorn
-git pull
+git pull  # if updating existing installation
 sudo bash install_bjorn.sh
 ```
 
-### Option 2: Manual Update
+The installer will:
+- Check if packages are already installed (skips if present - **much faster**)
+- Install Flask and dependencies only if needed
+- Automatically configure the modern interface
+- Set up all scripts and permissions
+
+### Updating Existing Installation
+If you already have Bjorn installed:
 ```bash
-# Install Flask dependencies
+cd /home/bjorn/Bjorn
+git pull
+
+# Install Flask dependencies (skips if already installed)
 sudo pip3 install --break-system-packages flask>=3.0.0 flask-socketio>=5.3.0 flask-cors>=4.0.0
+
+# Enable modern interface
+./switch_webapp.sh
+# Select option 1
 
 # Restart Bjorn
 sudo systemctl restart bjorn

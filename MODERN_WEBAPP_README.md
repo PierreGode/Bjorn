@@ -2,14 +2,32 @@
 
 ## Quick Start
 
+### For New Installations
+
+```bash
+cd /home/bjorn/Bjorn
+sudo bash install_bjorn.sh
+```
+
+**That's it!** The modern interface is included and automatically configured.
+
 ### For Existing Bjorn Installations
 
 ```bash
 cd /home/bjorn/Bjorn
-sudo bash install_modern_webapp.sh
+git pull
+
+# Install Flask (only if not already installed)
+sudo pip3 install --break-system-packages flask flask-socketio flask-cors
+
+# Switch to modern interface
+./switch_webapp.sh
+
+# Restart service
+sudo systemctl restart bjorn
 ```
 
-That's it! Access your modern interface at `http://[your-pi-ip]:8000`
+Access at: `http://[your-pi-ip]:8000`
 
 ## What You Get
 
@@ -67,14 +85,22 @@ That's it! Access your modern interface at `http://[your-pi-ip]:8000`
 
 ## Installation Options
 
-### Option 1: Quick Install (Recommended)
+### Option 1: Main Installer (Recommended)
+The modern interface is now included in the main installer:
 ```bash
-sudo bash install_modern_webapp.sh
+sudo bash install_bjorn.sh
 ```
 
+**Smart Installation:**
+- Checks if packages already installed (skips reinstallation)
+- Only installs what's missing (much faster on re-runs)
+- Automatically configures modern interface
+- Includes all Flask dependencies
+
 ### Option 2: Manual Install
+For existing installations:
 ```bash
-# Install dependencies
+# Install dependencies (only if needed)
 sudo pip3 install --break-system-packages flask flask-socketio flask-cors
 
 # Make scripts executable
@@ -82,12 +108,6 @@ chmod +x switch_webapp.sh
 
 # Switch interface
 ./switch_webapp.sh
-```
-
-### Option 3: Update install_bjorn.sh
-Run the main installer - it now includes Flask packages:
-```bash
-sudo bash install_bjorn.sh
 ```
 
 ## Usage
