@@ -441,8 +441,73 @@
                         Refresh
                     </button>
                 </div>
-                <div id="config-form">
-                    <p class="text-gray-400">Loading configuration...</p>
+                
+                <!-- System Management Section -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-semibold mb-4 text-bjorn-400">System Management</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        
+                        <!-- Update Status Card -->
+                        <div class="glass rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="font-medium">System Updates</h4>
+                                <span id="update-status" class="text-sm px-2 py-1 rounded bg-gray-700 text-gray-300">Checking...</span>
+                            </div>
+                            <div id="update-info" class="text-sm text-gray-400 mb-3">
+                                Checking for updates...
+                            </div>
+                            <button onclick="checkForUpdates()" 
+                                    class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition-colors mb-2">
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                Check for Updates
+                            </button>
+                            <button onclick="performUpdate()" 
+                                    id="update-btn"
+                                    class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
+                                    disabled>
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                                <span id="update-btn-text">Update System</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Service Control Card -->
+                        <div class="glass rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="font-medium">Service Control</h4>
+                                <span id="service-status" class="text-sm px-2 py-1 rounded bg-green-700 text-green-300">Running</span>
+                            </div>
+                            <div class="text-sm text-gray-400 mb-3">
+                                Manage the Bjorn system service
+                            </div>
+                            <button onclick="restartService()" 
+                                    class="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded transition-colors mb-2">
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                Restart Service
+                            </button>
+                            <button onclick="rebootSystem()" 
+                                    class="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition-colors">
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                Reboot System
+                            </button>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <!-- Configuration Form -->
+                <div>
+                    <h3 class="text-xl font-semibold mb-4 text-bjorn-400">Settings</h3>
+                    <div id="config-form">
+                        <p class="text-gray-400">Loading configuration...</p>
+                    </div>
                 </div>
             </div>
         </div>

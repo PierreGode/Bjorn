@@ -210,6 +210,16 @@ function setupAutoRefresh() {
             loadConsoleLogs();
         }
     }, 5000); // Every 5 seconds when on dashboard
+    
+    // Set up periodic update checking
+    autoRefreshIntervals.updates = setInterval(() => {
+        checkForUpdatesQuiet();
+    }, 300000); // Every 5 minutes
+    
+    // Initial update check after page load
+    setTimeout(() => {
+        checkForUpdatesQuiet();
+    }, 5000); // Check 5 seconds after page load
 }
 
 function initializeMobileMenu() {
@@ -302,8 +312,192 @@ async function loadConfigData() {
     try {
         const config = await fetchAPI('/api/config');
         displayConfigForm(config);
+        
+        // Also check for updates when loading config tab
+        checkForUpdates();
     } catch (error) {
         console.error('Error loading config:', error);
+    }
+}
+
+// ============================================================================
+// SYSTEM MANAGEMENT FUNCTIONS
+// ============================================================================
+
+async function checkForUpdates() {
+    try {
+        updateElement('update-status', 'Checking...');
+        updateElement('update-info', 'Checking for updates...');
+        addConsoleMessage('Checking for system updates...', 'info');
+        
+        const data = await fetchAPI('/api/system/check-updates');
+        
+        if (data.updates_available) {
+            updateElement('update-status', 'Update Available');
+            document.getElementById('update-status').className = 'text-sm px-2 py-1 rounded bg-orange-700 text-orange-300';
+            updateElement('update-info', `${data.commits_behind} commits behind. Latest: ${data.latest_commit || 'Unknown'}`);
+            
+            // Enable update button
+            const updateBtn = document.getElementById('update-btn');
+            updateBtn.disabled = false;
+            updateBtn.className = 'w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors';
+            
+            addConsoleMessage(`Update available: ${data.commits_behind} commits behind`, 'warning');
+        } else {
+            updateElement('update-status', 'Up to Date');
+            document.getElementById('update-status').className = 'text-sm px-2 py-1 rounded bg-green-700 text-green-300';
+            updateElement('update-info', 'System is up to date');
+            
+            // Disable update button
+            const updateBtn = document.getElementById('update-btn');
+            updateBtn.disabled = true;
+            updateBtn.className = 'w-full bg-gray-600 text-white py-2 px-4 rounded cursor-not-allowed';
+            
+            addConsoleMessage('System is up to date', 'success');
+        }
+        
+    } catch (error) {
+        console.error('Error checking for updates:', error);
+        updateElement('update-status', 'Error');
+        document.getElementById('update-status').className = 'text-sm px-2 py-1 rounded bg-red-700 text-red-300';
+        updateElement('update-info', 'Failed to check for updates');
+        addConsoleMessage('Failed to check for updates', 'error');
+    }
+}
+
+async function performUpdate() {
+    if (!confirm('This will update the system and restart the service. Continue?')) {
+        return;
+    }
+    
+    try {
+        updateElement('update-btn-text', 'Updating...');
+        const updateBtn = document.getElementById('update-btn');
+        updateBtn.disabled = true;
+        updateBtn.className = 'w-full bg-gray-600 text-white py-2 px-4 rounded cursor-not-allowed';
+        
+        addConsoleMessage('Starting system update...', 'info');
+        
+        const data = await postAPI('/api/system/update', {});
+        
+        if (data.success) {
+            addConsoleMessage('Update completed successfully', 'success');
+            addConsoleMessage('System will restart automatically...', 'info');
+            updateElement('update-info', 'Update completed. System restarting...');
+            
+            // Check for updates again after a delay
+            setTimeout(() => {
+                checkForUpdates();
+            }, 30000); // Check again in 30 seconds
+        } else {
+            addConsoleMessage(`Update failed: ${data.error || 'Unknown error'}`, 'error');
+            updateElement('update-btn-text', 'Update System');
+            updateBtn.disabled = false;
+            updateBtn.className = 'w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors';
+        }
+        
+    } catch (error) {
+        console.error('Error performing update:', error);
+        addConsoleMessage('Update failed due to network error', 'error');
+        updateElement('update-btn-text', 'Update System');
+        const updateBtn = document.getElementById('update-btn');
+        updateBtn.disabled = false;
+        updateBtn.className = 'w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors';
+    }
+}
+
+async function checkForUpdatesQuiet() {
+    try {
+        const data = await fetchAPI('/api/system/check-updates');
+        
+        if (data.updates_available && data.commits_behind > 0) {
+            // Show update notification in console if not on config tab
+            if (currentTab !== 'config') {
+                addConsoleMessage(`🔄 System update available: ${data.commits_behind} commits behind`, 'warning');
+            }
+            
+            // Add visual indicator to config tab
+            const configTabBtn = document.querySelector('[data-tab="config"]');
+            if (configTabBtn && !configTabBtn.querySelector('.update-indicator')) {
+                const indicator = document.createElement('span');
+                indicator.className = 'update-indicator absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full pulse-glow';
+                configTabBtn.style.position = 'relative';
+                configTabBtn.appendChild(indicator);
+            }
+        } else {
+            // Remove update indicator if up to date
+            const configTabBtn = document.querySelector('[data-tab="config"]');
+            const indicator = configTabBtn?.querySelector('.update-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+        
+    } catch (error) {
+        // Silently fail for background checks
+        console.debug('Background update check failed:', error);
+    }
+}
+
+async function restartService() {
+    if (!confirm('This will restart the Bjorn service. The web interface may be temporarily unavailable. Continue?')) {
+        return;
+    }
+    
+    try {
+        addConsoleMessage('Restarting Bjorn service...', 'info');
+        updateElement('service-status', 'Restarting...');
+        document.getElementById('service-status').className = 'text-sm px-2 py-1 rounded bg-yellow-700 text-yellow-300';
+        
+        const data = await postAPI('/api/system/restart-service', {});
+        
+        if (data.success) {
+            addConsoleMessage('Service restart initiated', 'success');
+            addConsoleMessage('Service will be back online shortly...', 'info');
+            
+            // Update status after delay
+            setTimeout(() => {
+                updateElement('service-status', 'Running');
+                document.getElementById('service-status').className = 'text-sm px-2 py-1 rounded bg-green-700 text-green-300';
+                addConsoleMessage('Service restart completed', 'success');
+            }, 10000); // 10 seconds delay
+        } else {
+            addConsoleMessage(`Service restart failed: ${data.error || 'Unknown error'}`, 'error');
+            updateElement('service-status', 'Error');
+            document.getElementById('service-status').className = 'text-sm px-2 py-1 rounded bg-red-700 text-red-300';
+        }
+        
+    } catch (error) {
+        console.error('Error restarting service:', error);
+        addConsoleMessage('Failed to restart service', 'error');
+        updateElement('service-status', 'Error');
+        document.getElementById('service-status').className = 'text-sm px-2 py-1 rounded bg-red-700 text-red-300';
+    }
+}
+
+async function rebootSystem() {
+    if (!confirm('This will reboot the entire system. The device will be offline for several minutes. Continue?')) {
+        return;
+    }
+    
+    try {
+        addConsoleMessage('Initiating system reboot...', 'warning');
+        
+        const data = await postAPI('/api/system/reboot', {});
+        
+        if (data.success) {
+            addConsoleMessage('System reboot initiated', 'success');
+            addConsoleMessage('Device will be offline for several minutes...', 'warning');
+            
+            // Update connection status
+            updateConnectionStatus(false);
+        } else {
+            addConsoleMessage(`Reboot failed: ${data.error || 'Unknown error'}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error rebooting system:', error);
+        addConsoleMessage('Failed to initiate system reboot', 'error');
     }
 }
 
@@ -843,3 +1037,8 @@ window.loadConsoleLogs = loadConsoleLogs;
 window.clearConsole = clearConsole;
 window.refreshEpaperDisplay = refreshEpaperDisplay;
 window.toggleEpaperSize = toggleEpaperSize;
+window.checkForUpdates = checkForUpdates;
+window.checkForUpdatesQuiet = checkForUpdatesQuiet;
+window.performUpdate = performUpdate;
+window.restartService = restartService;
+window.rebootSystem = rebootSystem;

@@ -201,6 +201,195 @@ def get_logs():
         logger.error(f"Error getting logs: {e}")
         return jsonify({'error': str(e)}), 500
 
+# ============================================================================
+# SYSTEM MANAGEMENT ENDPOINTS
+# ============================================================================
+
+@app.route('/api/system/check-updates')
+def check_updates():
+    """Check for system updates using git"""
+    try:
+        import subprocess
+        import os
+        
+        # Get current working directory (should be the repo root)
+        repo_path = os.path.dirname(os.path.abspath(__file__))
+        
+        # Fetch latest changes from remote
+        try:
+            subprocess.run(['git', 'fetch', 'origin'], cwd=repo_path, check=True, capture_output=True)
+        except subprocess.CalledProcessError:
+            logger.warning("Could not fetch from remote repository")
+        
+        # Check if local branch is behind remote
+        try:
+            result = subprocess.run(
+                ['git', 'rev-list', '--count', 'HEAD..origin/main'], 
+                cwd=repo_path, 
+                capture_output=True, 
+                text=True, 
+                check=True
+            )
+            commits_behind = int(result.stdout.strip())
+        except (subprocess.CalledProcessError, ValueError):
+            # Fallback: try master branch or assume up to date
+            try:
+                result = subprocess.run(
+                    ['git', 'rev-list', '--count', 'HEAD..origin/master'], 
+                    cwd=repo_path, 
+                    capture_output=True, 
+                    text=True, 
+                    check=True
+                )
+                commits_behind = int(result.stdout.strip())
+            except:
+                commits_behind = 0
+        
+        # Get latest commit info
+        try:
+            result = subprocess.run(
+                ['git', 'log', 'origin/main', '--oneline', '-1'], 
+                cwd=repo_path, 
+                capture_output=True, 
+                text=True, 
+                check=True
+            )
+            latest_commit = result.stdout.strip()
+        except:
+            try:
+                result = subprocess.run(
+                    ['git', 'log', 'origin/master', '--oneline', '-1'], 
+                    cwd=repo_path, 
+                    capture_output=True, 
+                    text=True, 
+                    check=True
+                )
+                latest_commit = result.stdout.strip()
+            except:
+                latest_commit = "Unable to fetch latest commit"
+        
+        return jsonify({
+            'updates_available': commits_behind > 0,
+            'commits_behind': commits_behind,
+            'latest_commit': latest_commit
+        })
+        
+    except Exception as e:
+        logger.error(f"Error checking for updates: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/system/update', methods=['POST'])
+def perform_update():
+    """Perform system update using git pull"""
+    try:
+        import subprocess
+        import os
+        
+        repo_path = os.path.dirname(os.path.abspath(__file__))
+        
+        # Perform git pull
+        try:
+            result = subprocess.run(
+                ['git', 'pull', 'origin', 'main'], 
+                cwd=repo_path, 
+                capture_output=True, 
+                text=True, 
+                check=True
+            )
+            output = result.stdout
+        except subprocess.CalledProcessError as e:
+            # Try master branch as fallback
+            try:
+                result = subprocess.run(
+                    ['git', 'pull', 'origin', 'master'], 
+                    cwd=repo_path, 
+                    capture_output=True, 
+                    text=True, 
+                    check=True
+                )
+                output = result.stdout
+            except subprocess.CalledProcessError as e2:
+                return jsonify({'success': False, 'error': f'Git pull failed: {e2.stderr}'}), 500
+        
+        # Schedule service restart after a short delay
+        def restart_service_delayed():
+            import time
+            time.sleep(2)  # Give time for response to be sent
+            try:
+                subprocess.run(['sudo', 'systemctl', 'restart', 'bjorn'], check=True)
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Failed to restart service: {e}")
+        
+        # Start restart in background thread
+        import threading
+        threading.Thread(target=restart_service_delayed, daemon=True).start()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Update completed successfully',
+            'output': output
+        })
+        
+    except Exception as e:
+        logger.error(f"Error performing update: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/system/restart-service', methods=['POST'])
+def restart_service():
+    """Restart the Bjorn service"""
+    try:
+        import subprocess
+        
+        # Schedule service restart after a short delay to allow response to be sent
+        def restart_service_delayed():
+            import time
+            time.sleep(2)  # Give time for response to be sent
+            try:
+                subprocess.run(['sudo', 'systemctl', 'restart', 'bjorn'], check=True)
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Failed to restart service: {e}")
+        
+        # Start restart in background thread
+        import threading
+        threading.Thread(target=restart_service_delayed, daemon=True).start()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Service restart initiated'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error restarting service: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/system/reboot', methods=['POST'])
+def reboot_system():
+    """Reboot the entire system"""
+    try:
+        import subprocess
+        
+        # Schedule reboot after a short delay to allow response to be sent
+        def reboot_delayed():
+            import time
+            time.sleep(3)  # Give time for response to be sent
+            try:
+                subprocess.run(['sudo', 'reboot'], check=True)
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Failed to reboot system: {e}")
+        
+        # Start reboot in background thread
+        import threading
+        threading.Thread(target=reboot_delayed, daemon=True).start()
+        
+        return jsonify({
+            'success': True,
+            'message': 'System reboot initiated'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error rebooting system: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/epaper-display')
 def get_epaper_display():
     """Get current e-paper display image as base64"""
