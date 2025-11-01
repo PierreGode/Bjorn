@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bjorn Cyberviking - Modern Dashboard</title>
+    <title>Ragnar Cyberviking - Modern Dashboard</title>
     <link rel="icon" href="/web/images/favicon.ico" type="image/x-icon">
     
     <!-- Tailwind CSS -->
@@ -19,7 +19,7 @@
             theme: {
                 extend: {
                     colors: {
-                        bjorn: {
+                        Ragnar: {
                             50: '#f0f9ff',
                             100: '#e0f2fe',
                             200: '#bae6fd',
@@ -76,9 +76,9 @@
             <div class="flex items-center justify-between h-16">
                 <!-- Logo -->
                 <div class="flex items-center space-x-3">
-                    <img src="/web/images/favicon.ico" alt="Bjorn" class="h-10 w-10">
-                    <span class="text-2xl font-bold bg-gradient-to-r from-bjorn-400 to-bjorn-600 bg-clip-text text-transparent">
-                        BJORN
+                    <img src="/web/images/favicon.ico" alt="Ragnar" class="h-10 w-10">
+                    <span class="text-2xl font-bold bg-gradient-to-r from-Ragnar-400 to-Ragnar-600 bg-clip-text text-transparent">
+                        Ragnar
                     </span>
                     <span id="connection-status" class="flex items-center space-x-2">
                         <span class="w-2 h-2 bg-green-500 rounded-full pulse-glow"></span>
@@ -158,10 +158,10 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-gray-400 text-sm">Targets</p>
-                            <p id="target-count" class="text-3xl font-bold text-bjorn-400">0</p>
+                            <p id="target-count" class="text-3xl font-bold text-Ragnar-400">0</p>
                         </div>
-                        <div class="w-12 h-12 bg-bjorn-500 bg-opacity-20 rounded-full flex items-center justify-center">
-                            <svg class="w-6 h-6 text-bjorn-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-12 h-12 bg-Ragnar-500 bg-opacity-20 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-Ragnar-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
                             </svg>
                         </div>
@@ -219,7 +219,7 @@
                 <!-- Current Status -->
                 <div class="glass rounded-xl p-6">
                     <h2 class="text-xl font-bold mb-4 flex items-center">
-                        <svg class="w-6 h-6 mr-2 text-bjorn-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-6 h-6 mr-2 text-Ragnar-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                         </svg>
                         Current Status
@@ -227,15 +227,15 @@
                     <div class="space-y-3">
                         <div class="flex items-center justify-between p-3 bg-slate-800 bg-opacity-50 rounded-lg">
                             <span class="text-gray-400">Status</span>
-                            <span id="bjorn-status" class="text-bjorn-400 font-semibold">IDLE</span>
+                            <span id="Ragnar-status" class="text-Ragnar-400 font-semibold">IDLE</span>
                         </div>
                         <div class="flex items-center justify-between p-3 bg-slate-800 bg-opacity-50 rounded-lg">
                             <span class="text-gray-400">Mode</span>
-                            <span id="bjorn-mode" class="text-green-400 font-semibold">Auto</span>
+                            <span id="Ragnar-mode" class="text-green-400 font-semibold">Auto</span>
                         </div>
                         <div class="p-3 bg-slate-800 bg-opacity-50 rounded-lg">
-                            <p class="text-gray-400 text-sm mb-2">Bjorn Says:</p>
-                            <p id="bjorn-says" class="text-white font-mono text-sm">Hacking away...</p>
+                            <p class="text-gray-400 text-sm mb-2">Ragnar Says:</p>
+                            <p id="Ragnar-says" class="text-white font-mono text-sm">Hacking away...</p>
                         </div>
                     </div>
                 </div>
@@ -243,7 +243,7 @@
                 <!-- Connection Status -->
                 <div class="glass rounded-xl p-6">
                     <h2 class="text-xl font-bold mb-4 flex items-center">
-                        <svg class="w-6 h-6 mr-2 text-bjorn-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-6 h-6 mr-2 text-Ragnar-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
                         </svg>
                         Connectivity
@@ -291,7 +291,7 @@
                     
                     <!-- General Controls -->
                     <div class="bg-slate-800 bg-opacity-50 rounded-lg p-4">
-                        <h3 class="font-semibold mb-4 text-bjorn-400">System Controls</h3>
+                        <h3 class="font-semibold mb-4 text-Ragnar-400">System Controls</h3>
                         <div class="grid grid-cols-2 gap-3">
                             <button onclick="startOrchestrator()" 
                                     class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors">
@@ -327,20 +327,20 @@
                     
                     <!-- Manual Attack Controls -->
                     <div class="bg-slate-800 bg-opacity-50 rounded-lg p-4">
-                        <h3 class="font-semibold mb-4 text-bjorn-400">Manual Attack</h3>
+                        <h3 class="font-semibold mb-4 text-Ragnar-400">Manual Attack</h3>
                         <div class="space-y-3">
                             <div class="grid grid-cols-3 gap-2">
                                 <select id="manual-ip-dropdown" 
                                         onchange="updateManualPorts()" 
-                                        class="bg-slate-700 text-white rounded px-3 py-2 border border-slate-600 focus:border-bjorn-400 focus:outline-none">
+                                        class="bg-slate-700 text-white rounded px-3 py-2 border border-slate-600 focus:border-Ragnar-400 focus:outline-none">
                                     <option value="">Select IP</option>
                                 </select>
                                 <select id="manual-port-dropdown" 
-                                        class="bg-slate-700 text-white rounded px-3 py-2 border border-slate-600 focus:border-bjorn-400 focus:outline-none">
+                                        class="bg-slate-700 text-white rounded px-3 py-2 border border-slate-600 focus:border-Ragnar-400 focus:outline-none">
                                     <option value="">Select Port</option>
                                 </select>
                                 <select id="manual-action-dropdown" 
-                                        class="bg-slate-700 text-white rounded px-3 py-2 border border-slate-600 focus:border-bjorn-400 focus:outline-none">
+                                        class="bg-slate-700 text-white rounded px-3 py-2 border border-slate-600 focus:border-Ragnar-400 focus:outline-none">
                                     <option value="">Select Action</option>
                                 </select>
                             </div>
@@ -361,13 +361,13 @@
             <div class="glass rounded-xl p-6">
                 <h2 class="text-xl font-bold mb-4 flex items-center justify-between">
                     <span class="flex items-center">
-                        <svg class="w-6 h-6 mr-2 text-bjorn-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-6 h-6 mr-2 text-Ragnar-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                         Console
                     </span>
                     <div class="flex space-x-2">
-                        <button onclick="loadConsoleLogs()" class="text-sm text-white bg-bjorn-600 hover:bg-bjorn-700 px-3 py-1 rounded transition-colors">
+                        <button onclick="loadConsoleLogs()" class="text-sm text-white bg-Ragnar-600 hover:bg-Ragnar-700 px-3 py-1 rounded transition-colors">
                             Refresh
                         </button>
                         <button onclick="clearConsole()" class="text-sm text-gray-400 hover:text-white transition-colors">
@@ -376,7 +376,7 @@
                     </div>
                 </h2>
                 <div id="console-output" class="bg-black bg-opacity-50 rounded-lg p-4 h-64 overflow-y-auto font-mono text-sm scrollbar-thin">
-                    <div class="text-green-400">Bjorn console loading...</div>
+                    <div class="text-green-400">Ragnar console loading...</div>
                 </div>
             </div>
         </div>
@@ -386,7 +386,7 @@
             <div class="glass rounded-xl p-6">
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-2xl font-bold">Network Scan Results</h2>
-                    <button onclick="refreshCurrentTab()" class="refresh-btn bg-bjorn-600 hover:bg-bjorn-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <button onclick="refreshCurrentTab()" class="refresh-btn bg-Ragnar-600 hover:bg-Ragnar-700 text-white px-4 py-2 rounded-lg transition-colors">
                         <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                         </svg>
@@ -404,7 +404,7 @@
             <div class="glass rounded-xl p-6">
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-2xl font-bold">Discovered Credentials</h2>
-                    <button onclick="refreshCurrentTab()" class="refresh-btn bg-bjorn-600 hover:bg-bjorn-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <button onclick="refreshCurrentTab()" class="refresh-btn bg-Ragnar-600 hover:bg-Ragnar-700 text-white px-4 py-2 rounded-lg transition-colors">
                         <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                         </svg>
@@ -422,7 +422,7 @@
             <div class="glass rounded-xl p-6">
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-2xl font-bold">Stolen Data</h2>
-                    <button onclick="refreshCurrentTab()" class="refresh-btn bg-bjorn-600 hover:bg-bjorn-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <button onclick="refreshCurrentTab()" class="refresh-btn bg-Ragnar-600 hover:bg-Ragnar-700 text-white px-4 py-2 rounded-lg transition-colors">
                         <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                         </svg>
@@ -453,7 +453,7 @@
                             </svg>
                             Clear Files
                         </button>
-                        <button onclick="refreshFiles()" class="refresh-btn bg-bjorn-600 hover:bg-bjorn-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        <button onclick="refreshFiles()" class="refresh-btn bg-Ragnar-600 hover:bg-Ragnar-700 text-white px-4 py-2 rounded-lg transition-colors">
                             <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                             </svg>
@@ -498,7 +498,7 @@
                             <!-- Dynamic content -->
                         </div>
                         <div class="flex space-x-3">
-                            <button id="modal-confirm" class="bg-bjorn-600 hover:bg-bjorn-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            <button id="modal-confirm" class="bg-Ragnar-600 hover:bg-Ragnar-700 text-white px-4 py-2 rounded-lg transition-colors">
                                 Confirm
                             </button>
                             <button onclick="closeFileModal()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
@@ -523,7 +523,7 @@
                             </svg>
                             Capture Screenshot
                         </button>
-                        <button onclick="refreshImages()" class="refresh-btn bg-bjorn-600 hover:bg-bjorn-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        <button onclick="refreshImages()" class="refresh-btn bg-Ragnar-600 hover:bg-Ragnar-700 text-white px-4 py-2 rounded-lg transition-colors">
                             <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                             </svg>
@@ -535,7 +535,7 @@
                 <!-- Image Filter Controls -->
                 <div class="mb-6">
                     <div class="flex flex-wrap gap-2">
-                        <button onclick="filterImages('all')" class="image-filter-btn px-3 py-1 rounded-full text-sm bg-bjorn-600 text-white" data-filter="all">
+                        <button onclick="filterImages('all')" class="image-filter-btn px-3 py-1 rounded-full text-sm bg-Ragnar-600 text-white" data-filter="all">
                             All Images
                         </button>
                         <button onclick="filterImages('screenshots')" class="image-filter-btn px-3 py-1 rounded-full text-sm bg-gray-600 text-white" data-filter="screenshots">
@@ -610,7 +610,7 @@
             <div class="glass rounded-xl p-6">
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-2xl font-bold">System Monitoring</h2>
-                    <button onclick="refreshSystemStatus()" class="refresh-btn bg-bjorn-600 hover:bg-bjorn-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <button onclick="refreshSystemStatus()" class="refresh-btn bg-Ragnar-600 hover:bg-Ragnar-700 text-white px-4 py-2 rounded-lg transition-colors">
                         <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                         </svg>
@@ -685,7 +685,7 @@
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="font-semibold">Top Processes</h3>
                             <div class="flex space-x-2">
-                                <button onclick="sortProcesses('cpu')" class="process-sort-btn text-xs px-2 py-1 rounded bg-bjorn-600 text-white" data-sort="cpu">CPU</button>
+                                <button onclick="sortProcesses('cpu')" class="process-sort-btn text-xs px-2 py-1 rounded bg-Ragnar-600 text-white" data-sort="cpu">CPU</button>
                                 <button onclick="sortProcesses('memory')" class="process-sort-btn text-xs px-2 py-1 rounded bg-gray-600 text-white" data-sort="memory">Memory</button>
                             </div>
                         </div>
@@ -733,7 +733,7 @@
                             </svg>
                             Export Data
                         </button>
-                        <button onclick="refreshNetkbData()" class="refresh-btn bg-bjorn-600 hover:bg-bjorn-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        <button onclick="refreshNetkbData()" class="refresh-btn bg-Ragnar-600 hover:bg-Ragnar-700 text-white px-4 py-2 rounded-lg transition-colors">
                             <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                             </svg>
@@ -745,7 +745,7 @@
                 <!-- NetKB Filter Controls -->
                 <div class="mb-6">
                     <div class="flex flex-wrap gap-2 mb-4">
-                        <button onclick="filterNetkbData('all')" class="netkb-filter-btn px-3 py-1 rounded-full text-sm bg-bjorn-600 text-white" data-filter="all">
+                        <button onclick="filterNetkbData('all')" class="netkb-filter-btn px-3 py-1 rounded-full text-sm bg-Ragnar-600 text-white" data-filter="all">
                             All Entries
                         </button>
                         <button onclick="filterNetkbData('vulnerabilities')" class="netkb-filter-btn px-3 py-1 rounded-full text-sm bg-gray-600 text-white" data-filter="vulnerabilities">
@@ -765,7 +765,7 @@
                     <!-- Search Bar -->
                     <div class="flex space-x-3">
                         <input type="text" id="netkb-search" placeholder="Search NetKB entries..." 
-                               class="flex-1 bg-slate-700 text-white rounded px-3 py-2 border border-slate-600 focus:border-bjorn-400 focus:outline-none"
+                               class="flex-1 bg-slate-700 text-white rounded px-3 py-2 border border-slate-600 focus:border-Ragnar-400 focus:outline-none"
                                onkeyup="searchNetkbData(this.value)">
                         <button onclick="clearNetkbSearch()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
                             Clear
@@ -868,7 +868,7 @@
             <div class="glass rounded-xl p-6">
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-2xl font-bold">E-Paper Display</h2>
-                    <button onclick="refreshEpaperDisplay()" class="refresh-btn bg-bjorn-600 hover:bg-bjorn-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <button onclick="refreshEpaperDisplay()" class="refresh-btn bg-Ragnar-600 hover:bg-Ragnar-700 text-white px-4 py-2 rounded-lg transition-colors">
                         <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                         </svg>
@@ -879,7 +879,7 @@
                 <!-- Live Status Display -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                     <div class="glass rounded-xl p-4">
-                        <h3 class="text-lg font-semibold mb-3 text-bjorn-400">Current Status</h3>
+                        <h3 class="text-lg font-semibold mb-3 text-Ragnar-400">Current Status</h3>
                         <div class="space-y-2">
                             <div class="flex justify-between">
                                 <span class="text-gray-400">Primary Status:</span>
@@ -897,7 +897,7 @@
                     </div>
                     
                     <div class="glass rounded-xl p-4">
-                        <h3 class="text-lg font-semibold mb-3 text-bjorn-400">Display Info</h3>
+                        <h3 class="text-lg font-semibold mb-3 text-Ragnar-400">Display Info</h3>
                         <div class="space-y-2">
                             <div class="flex justify-between">
                                 <span class="text-gray-400">Resolution:</span>
@@ -918,10 +918,10 @@
                 <!-- E-Paper Display Image -->
                 <div class="glass rounded-xl p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-bjorn-400">Live E-Paper Display</h3>
+                        <h3 class="text-lg font-semibold text-Ragnar-400">Live E-Paper Display</h3>
                         <div class="flex items-center space-x-2">
                             <span class="text-sm text-gray-400">Size:</span>
-                            <button onclick="toggleEpaperSize()" class="bg-bjorn-600 hover:bg-bjorn-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                            <button onclick="toggleEpaperSize()" class="bg-Ragnar-600 hover:bg-Ragnar-700 text-white px-3 py-1 rounded text-sm transition-colors">
                                 Resize
                             </button>
                         </div>
@@ -946,8 +946,8 @@
                         </div>
                     </div>
                     <p class="text-center text-gray-400 text-sm mt-4">
-                        This shows the exact same content as your Bjorn device's physical e-paper display<br>
-                        <span class="text-bjorn-400">💡 Click the display image or use the Resize button to cycle through different sizes</span>
+                        This shows the exact same content as your Ragnar device's physical e-paper display<br>
+                        <span class="text-Ragnar-400">💡 Click the display image or use the Resize button to cycle through different sizes</span>
                     </p>
                 </div>
             </div>
@@ -958,7 +958,7 @@
             <div class="glass rounded-xl p-6">
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-2xl font-bold">Configuration</h2>
-                    <button onclick="refreshCurrentTab()" class="refresh-btn bg-bjorn-600 hover:bg-bjorn-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <button onclick="refreshCurrentTab()" class="refresh-btn bg-Ragnar-600 hover:bg-Ragnar-700 text-white px-4 py-2 rounded-lg transition-colors">
                         <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                         </svg>
@@ -968,7 +968,7 @@
                 
                 <!-- System Management Section -->
                 <div class="mb-8">
-                    <h3 class="text-xl font-semibold mb-4 text-bjorn-400">System Management</h3>
+                    <h3 class="text-xl font-semibold mb-4 text-Ragnar-400">System Management</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         
                         <!-- Update Status Card -->
@@ -1005,7 +1005,7 @@
                                 <span id="service-status" class="text-sm px-2 py-1 rounded bg-green-700 text-green-300">Running</span>
                             </div>
                             <div class="text-sm text-gray-400 mb-3">
-                                Manage the Bjorn system service
+                                Manage the Ragnar system service
                             </div>
                             <button onclick="restartService()" 
                                     class="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded transition-colors mb-2">
@@ -1040,7 +1040,7 @@
                                 Start AP Mode
                             </button>
                             <button onclick="refreshWifiStatus()" 
-                                    class="w-full bg-bjorn-600 hover:bg-bjorn-700 text-white py-2 px-4 rounded transition-colors">
+                                    class="w-full bg-Ragnar-600 hover:bg-Ragnar-700 text-white py-2 px-4 rounded transition-colors">
                                 <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                                 </svg>
@@ -1053,7 +1053,7 @@
                 
                 <!-- Configuration Form -->
                 <div>
-                    <h3 class="text-xl font-semibold mb-4 text-bjorn-400">Settings</h3>
+                    <h3 class="text-xl font-semibold mb-4 text-Ragnar-400">Settings</h3>
                     <div id="config-form">
                         <p class="text-gray-400">Loading configuration...</p>
                     </div>
@@ -1064,7 +1064,7 @@
     </main>
 
     <!-- JavaScript -->
-    <script src="/web/scripts/bjorn_modern.js"></script>
+    <script src="/web/scripts/ragnar_modern.js"></script>
     
 </body>
 </html>

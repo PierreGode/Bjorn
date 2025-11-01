@@ -197,7 +197,7 @@ function generateConfigForm(config) {
 
     function startAPMode() {
         // Confirm the action since it will disconnect current Wi-Fi
-        if (confirm('Start AP Mode?\n\nThis will:\n• Disconnect from current Wi-Fi\n• Start "Bjorn" access point\n• Enable 3-minute smart cycling\n• Allow Wi-Fi configuration via AP\n\nContinue?')) {
+        if (confirm('Start AP Mode?\n\nThis will:\n• Disconnect from current Wi-Fi\n• Start "Ragnar" access point\n• Enable 3-minute smart cycling\n• Allow Wi-Fi configuration via AP\n\nContinue?')) {
             // Show a loading message
             showWifiStatus('Starting AP Mode...', 'connecting');
             
@@ -267,7 +267,7 @@ function generateConfigForm(config) {
             .then(data => {
                 if (data.ap_mode_active) {
                     showWifiStatus(
-                        `AP Mode Active: "${data.ap_ssid || 'Bjorn'}" | Connect to configure Wi-Fi`,
+                        `AP Mode Active: "${data.ap_ssid || 'Ragnar'}" | Connect to configure Wi-Fi`,
                         'ap-mode'
                     );
                 } else if (data.wifi_connected) {

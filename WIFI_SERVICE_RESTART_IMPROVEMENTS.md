@@ -4,7 +4,7 @@ This document summarizes the improvements made to the Wi-Fi manager to handle se
 
 ## Problem Statement
 
-When Bjorn's web service restarts (e.g., during updates), the Wi-Fi manager would:
+When ragnar's web service restarts (e.g., during updates), the Wi-Fi manager would:
 - Incorrectly treat the restart as a fresh boot
 - Attempt to reconnect even if already connected
 - Potentially start AP mode unnecessarily
@@ -19,7 +19,7 @@ The Wi-Fi manager now includes sophisticated restart detection and connection st
 ### 1. Restart Detection System
 
 **Restart Marker Files**
-- Creates `/tmp/bjorn_wifi_manager.pid` with PID and timestamp
+- Creates `/tmp/ragnar_wifi_manager.pid` with PID and timestamp
 - Detects if the service was recently running (within 5 minutes)
 - Differentiates between fresh boot and service restart
 
@@ -31,7 +31,7 @@ The Wi-Fi manager now includes sophisticated restart detection and connection st
 ### 2. Connection State Persistence
 
 **State File System**
-- Saves connection state to `/tmp/bjorn_wifi_state.json`
+- Saves connection state to `/tmp/ragnar_wifi_state.json`
 - Includes: timestamp, connection status, SSID, AP mode status
 - Automatically expires old state (10 minutes)
 
@@ -167,8 +167,8 @@ Example log output:
 
 ## File Locations
 
-- Restart marker: `/tmp/bjorn_wifi_manager.pid`
-- Connection state: `/tmp/bjorn_wifi_state.json`
+- Restart marker: `/tmp/ragnar_wifi_manager.pid`
+- Connection state: `/tmp/ragnar_wifi_state.json`
 - Main implementation: `wifi_manager.py`
 
 ## Future Enhancements

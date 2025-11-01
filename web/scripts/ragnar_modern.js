@@ -1,4 +1,4 @@
-// bjorn_modern.js - Enhanced Modern JavaScript for Bjorn web interface
+// Ragnar_modern.js - Enhanced Modern JavaScript for Ragnar web interface
 
 let socket;
 let reconnectAttempts = 0;
@@ -30,10 +30,10 @@ function initializeSocket() {
     });
 
     socket.on('connect', function() {
-        console.log('Connected to Bjorn server');
+        console.log('Connected to Ragnar server');
         updateConnectionStatus(true);
         reconnectAttempts = 0;
-        addConsoleMessage('Connected to Bjorn server', 'success');
+        addConsoleMessage('Connected to Ragnar server', 'success');
         
         // Request initial data
         socket.emit('request_status');
@@ -41,7 +41,7 @@ function initializeSocket() {
     });
 
     socket.on('disconnect', function() {
-        console.log('Disconnected from Bjorn server');
+        console.log('Disconnected from Ragnar server');
         updateConnectionStatus(false);
         addConsoleMessage('Disconnected from server', 'error');
     });
@@ -158,7 +158,7 @@ function showTab(tabName) {
     
     // Remove active class from all nav buttons
     document.querySelectorAll('.nav-btn, [data-tab]').forEach(btn => {
-        btn.classList.remove('bg-bjorn-600');
+        btn.classList.remove('bg-Ragnar-600');
         btn.classList.add('text-gray-300', 'hover:text-white', 'hover:bg-gray-700');
     });
     
@@ -171,7 +171,7 @@ function showTab(tabName) {
     // Add active class to selected nav button
     const selectedBtn = document.querySelector(`[data-tab="${tabName}"]`);
     if (selectedBtn) {
-        selectedBtn.classList.add('bg-bjorn-600');
+        selectedBtn.classList.add('bg-Ragnar-600');
         selectedBtn.classList.remove('text-gray-300', 'hover:text-white', 'hover:bg-gray-700');
     }
     
@@ -258,7 +258,7 @@ async function loadInitialData() {
         await refreshWifiStatus();
         
         // Add welcome message to console
-        addConsoleMessage('Bjorn Modern Web Interface Initialized', 'success');
+        addConsoleMessage('Ragnar Modern Web Interface Initialized', 'success');
         addConsoleMessage('Dashboard loaded successfully', 'info');
         
     } catch (error) {
@@ -545,12 +545,12 @@ async function checkForUpdatesQuiet() {
 }
 
 async function restartService() {
-    if (!confirm('This will restart the Bjorn service. The web interface may be temporarily unavailable. Continue?')) {
+    if (!confirm('This will restart the Ragnar service. The web interface may be temporarily unavailable. Continue?')) {
         return;
     }
     
     try {
-        addConsoleMessage('Restarting Bjorn service...', 'info');
+        addConsoleMessage('Restarting Ragnar service...', 'info');
         updateElement('service-status', 'Restarting...');
         document.getElementById('service-status').className = 'text-sm px-2 py-1 rounded bg-yellow-700 text-yellow-300';
         
@@ -611,7 +611,7 @@ async function rebootSystem() {
 // ============================================================================
 
 async function startAPMode() {
-    if (!confirm('Start AP Mode?\n\nThis will:\n• Disconnect from current Wi-Fi\n• Start "Bjorn" access point\n• Enable 3-minute smart cycling\n• Allow Wi-Fi configuration via AP\n\nContinue?')) {
+    if (!confirm('Start AP Mode?\n\nThis will:\n• Disconnect from current Wi-Fi\n• Start "Ragnar" access point\n• Enable 3-minute smart cycling\n• Allow Wi-Fi configuration via AP\n\nContinue?')) {
         return;
     }
     
@@ -648,7 +648,7 @@ async function refreshWifiStatus() {
         
         if (data.ap_mode_active) {
             updateWifiStatus(
-                `AP Mode Active: "${data.ap_ssid || 'Bjorn'}" | Connect to configure Wi-Fi`,
+                `AP Mode Active: "${data.ap_ssid || 'Ragnar'}" | Connect to configure Wi-Fi`,
                 'ap-mode'
             );
             updateElement('wifi-status-indicator', 'AP Mode');
@@ -838,8 +838,8 @@ async function startOrchestrator() {
         
         if (data.success) {
             addConsoleMessage('Automatic mode started successfully', 'success');
-            updateElement('bjorn-mode', 'Auto');
-            document.getElementById('bjorn-mode').className = 'text-green-400 font-semibold';
+            updateElement('ragnar-mode', 'Auto');
+            document.getElementById('ragnar-mode').className = 'text-green-400 font-semibold';
             
             // Hide manual controls
             const manualControls = document.getElementById('manual-controls');
@@ -864,8 +864,8 @@ async function stopOrchestrator() {
         
         if (data.success) {
             addConsoleMessage('Automatic mode stopped - Manual mode activated', 'warning');
-            updateElement('bjorn-mode', 'Manual');
-            document.getElementById('bjorn-mode').className = 'text-orange-400 font-semibold';
+            updateElement('ragnar-mode', 'Manual');
+            document.getElementById('ragnar-mode').className = 'text-orange-400 font-semibold';
             
             // Show manual controls
             const manualControls = document.getElementById('manual-controls');
@@ -1006,15 +1006,15 @@ function updateDashboardStatus(data) {
     }
     
     // Update status - use the actual e-paper display text
-    updateElement('bjorn-status', data.bjorn_status || 'IDLE');
-    updateElement('bjorn-says', (data.bjorn_status2 || data.bjorn_status || 'Awakening...'));
+    updateElement('ragnar-status', data.ragnar_status || 'IDLE');
+    updateElement('ragnar-says', (data.ragnar_status2 || data.ragnar_status || 'Awakening...'));
     
     // Update mode and handle manual controls
     const isManualMode = data.manual_mode;
-    updateElement('bjorn-mode', isManualMode ? 'Manual' : 'Auto');
+    updateElement('Ragnar-mode', isManualMode ? 'Manual' : 'Auto');
     
     // Update mode styling
-    const modeElement = document.getElementById('bjorn-mode');
+    const modeElement = document.getElementById('Ragnar-mode');
     if (modeElement) {
         if (isManualMode) {
             modeElement.className = 'text-orange-400 font-semibold';
@@ -1238,7 +1238,7 @@ function displayCredentialsTable(data) {
         if (creds && creds.length > 0) {
             html += `
                 <div class="bg-gray-800 rounded-lg p-4">
-                    <h3 class="text-lg font-semibold text-bjorn-400 mb-3">${service.toUpperCase()} (${creds.length})</h3>
+                    <h3 class="text-lg font-semibold text-Ragnar-400 mb-3">${service.toUpperCase()} (${creds.length})</h3>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-700">
                             <thead>
@@ -1294,7 +1294,7 @@ function displayLootTable(data) {
         html += `
             <div class="bg-gray-800 rounded-lg p-4 hover:bg-gray-700 transition-colors">
                 <div class="flex items-center justify-between mb-2">
-                    <h3 class="text-lg font-semibold text-bjorn-400 truncate" title="${item.filename || 'Unknown File'}">${item.filename || 'Unknown File'}</h3>
+                    <h3 class="text-lg font-semibold text-Ragnar-400 truncate" title="${item.filename || 'Unknown File'}">${item.filename || 'Unknown File'}</h3>
                     <span class="text-xs text-gray-400 ml-2">${item.size || 'N/A'}</span>
                 </div>
                 <div class="space-y-2 text-sm text-gray-300">
@@ -1324,7 +1324,7 @@ function displayConfigForm(config) {
     for (const [sectionName, keys] of Object.entries(sections)) {
         html += `
             <div class="bg-slate-800 bg-opacity-50 rounded-lg p-4">
-                <h3 class="text-lg font-bold mb-4 text-bjorn-400">${sectionName}</h3>
+                <h3 class="text-lg font-bold mb-4 text-Ragnar-400">${sectionName}</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         `;
         
@@ -1337,7 +1337,7 @@ function displayConfigForm(config) {
                     html += `
                         <label class="flex items-center space-x-3 p-3 rounded-lg hover:bg-slate-700 hover:bg-opacity-50 transition-colors cursor-pointer">
                             <input type="checkbox" name="${key}" ${value ? 'checked' : ''} 
-                                   class="w-5 h-5 rounded bg-slate-700 border-slate-600 text-bjorn-500 focus:ring-bjorn-500">
+                                   class="w-5 h-5 rounded bg-slate-700 border-slate-600 text-Ragnar-500 focus:ring-Ragnar-500">
                             <span>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
                         </label>
                     `;
@@ -1348,7 +1348,7 @@ function displayConfigForm(config) {
                                 ${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                             </label>
                             <input type="${type}" name="${key}" value="${value}"
-                                   class="w-full px-4 py-2 rounded-lg bg-slate-700 border border-slate-600 focus:border-bjorn-500 focus:ring-1 focus:ring-bjorn-500">
+                                   class="w-full px-4 py-2 rounded-lg bg-slate-700 border border-slate-600 focus:border-Ragnar-500 focus:ring-1 focus:ring-Ragnar-500">
                         </div>
                     `;
                 }
@@ -1359,7 +1359,7 @@ function displayConfigForm(config) {
     }
     
     html += `
-        <button type="submit" class="w-full bg-bjorn-600 hover:bg-bjorn-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+        <button type="submit" class="w-full bg-Ragnar-600 hover:bg-Ragnar-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">
             Save Configuration
         </button>
     </form></div>`;
@@ -1949,9 +1949,9 @@ function filterImages(category) {
     document.querySelectorAll('.image-filter-btn').forEach(btn => {
         if (btn.dataset.filter === category) {
             btn.classList.remove('bg-gray-600');
-            btn.classList.add('bg-bjorn-600');
+            btn.classList.add('bg-Ragnar-600');
         } else {
-            btn.classList.remove('bg-bjorn-600');
+            btn.classList.remove('bg-Ragnar-600');
             btn.classList.add('bg-gray-600');
         }
     });
@@ -2338,9 +2338,9 @@ function sortProcesses(sortBy) {
     document.querySelectorAll('.process-sort-btn').forEach(btn => {
         if (btn.dataset.sort === sortBy) {
             btn.classList.remove('bg-gray-600');
-            btn.classList.add('bg-bjorn-600');
+            btn.classList.add('bg-Ragnar-600');
         } else {
-            btn.classList.remove('bg-bjorn-600');
+            btn.classList.remove('bg-Ragnar-600');
             btn.classList.add('bg-gray-600');
         }
     });
@@ -2500,9 +2500,9 @@ function filterNetkbData(filterType) {
     document.querySelectorAll('.netkb-filter-btn').forEach(btn => {
         if (btn.dataset.filter === filterType) {
             btn.classList.remove('bg-gray-600');
-            btn.classList.add('bg-bjorn-600');
+            btn.classList.add('bg-Ragnar-600');
         } else {
-            btn.classList.remove('bg-bjorn-600');
+            btn.classList.remove('bg-Ragnar-600');
             btn.classList.add('bg-gray-600');
         }
     });

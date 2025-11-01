@@ -181,8 +181,8 @@ class WebUtils:
 
     def start_orchestrator(self, handler):
         try:
-            bjorn_instance = self.shared_data.bjorn_instance
-            bjorn_instance.start_orchestrator()
+            ragnar_instance = self.shared_data.ragnar_instance
+            ragnar_instance.start_orchestrator()
             handler.send_response(200)
             handler.send_header("Content-type", "application/json")
             handler.end_headers()
@@ -195,8 +195,8 @@ class WebUtils:
 
     def stop_orchestrator(self, handler):
         try:
-            bjorn_instance = self.shared_data.bjorn_instance
-            bjorn_instance.stop_orchestrator()
+            ragnar_instance = self.shared_data.ragnar_instance
+            ragnar_instance.stop_orchestrator()
             self.shared_data.orchestrator_should_exit = True
             handler.send_response(200)
             handler.send_header("Content-type", "application/json")

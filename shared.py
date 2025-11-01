@@ -1,6 +1,6 @@
 #shared.py
 # Description:
-# This file, shared.py, is a core component responsible for managing shared resources and data for different modules in the Bjorn project.
+# This file, shared.py, is a core component responsible for managing shared resources and data for different modules in the Ragnar project.
 # It handles the initialization and configuration of paths, logging, fonts, and images. Additionally, it sets up the environment, 
 # creates necessary directories and files, and manages the loading and saving of configuration settings.
 # 
@@ -112,7 +112,7 @@ class SharedData:
         """ It can be used to reset the configuration settings to their default values."""
         """ You can mofify the json file shared_config.json or on the web page to change the default values of the configuration settings."""
         return {
-            "__title_Bjorn__": "Settings",
+            "__title_Ragnar__": "Settings",
             "manual_mode": False,
             "websrv": True,
             "web_increment ": False,
@@ -150,7 +150,7 @@ class SharedData:
             "mac_scan_blacklist": [],
             "ip_scan_blacklist": [],
             "steal_file_names": ["ssh.csv","hack.txt"],
-            "steal_file_extensions": [".bjorn",".hack",".flag"],
+            "steal_file_extensions": [".ragnar",".hack",".flag"],
             
             "__title_network__": "Network",
             "nmap_scan_aggressivity": "-T2",
@@ -167,8 +167,8 @@ class SharedData:
             
             "__title_wifi__": "Wi-Fi Management",
             "wifi_known_networks": [],
-            "wifi_ap_ssid": "Bjorn",
-            "wifi_ap_password": "bjornconnect",
+            "wifi_ap_ssid": "Ragnar",
+            "wifi_ap_password": "ragnarconnect",
             "wifi_connection_timeout": 60,
             "wifi_max_attempts": 3,
             "wifi_scan_interval": 300,
@@ -294,7 +294,7 @@ class SharedData:
             self.web_screen_reversed = False
             
             # NOTE: Test image code below was used to verify EPD hardware. 
-            # Commented out to allow normal Bjorn display to show.
+            # Commented out to allow normal Ragnar display to show.
             # Uncomment if you need to test the display again.
             # from PIL import ImageDraw
             # test_image = Image.new('1', (self.width, self.height), 255)
@@ -314,16 +314,16 @@ class SharedData:
         self.display_should_exit = False
         self.orchestrator_should_exit = False 
         self.webapp_should_exit = False 
-        self.bjorn_instance = None
+        self.ragnar_instance = None
         self.wifichanged = False
         self.bluetooth_active = False
         self.wifi_connected = False
         self.pan_connected = False
         self.usb_active = False
-        self.bjornsays = "Hacking away..."
-        self.bjornorch_status = "IDLE"
-        self.bjornstatustext = "IDLE"
-        self.bjornstatustext2 = "Awakening..."
+        self.ragnarsays = "Hacking away..."
+        self.ragnarorch_status = "IDLE"
+        self.ragnarstatustext = "IDLE"
+        self.ragnarstatustext2 = "Awakening..."
         self.scale_factor_x = self.width / self.ref_width
         self.scale_factor_y = self.height / self.ref_height
         self.text_frame_top = int(88 * self.scale_factor_x)
@@ -518,8 +518,8 @@ class SharedData:
             logger.info("Loading images...")
 
             # Load static images from the root of staticpicdir
-            self.bjornstatusimage = None
-            self.bjorn1 = self.load_image(os.path.join(self.staticpicdir, 'bjorn1.bmp')) # Used to calculate the center of the screen
+            self.ragnarstatusimage = None
+            self.ragnar1 = self.load_image(os.path.join(self.staticpicdir, 'ragnar1.bmp')) # Used to calculate the center of the screen
             self.port = self.load_image(os.path.join(self.staticpicdir, 'port.bmp'))
             self.frise = self.load_image(os.path.join(self.staticpicdir, 'frise.bmp'))
             self.target = self.load_image(os.path.join(self.staticpicdir, 'target.bmp'))
@@ -580,25 +580,25 @@ class SharedData:
                     logger.info(f"Loaded {len(images)} images for status {status}.")
 
 
-            """Calculate the position of the Bjorn image on the screen to center it"""
-            self.x_center1 = (self.width - self.bjorn1.width) // 2
-            self.y_bottom1 = self.height - self.bjorn1.height
+            """Calculate the position of the Ragnar image on the screen to center it"""
+            self.x_center1 = (self.width - self.ragnar1.width) // 2
+            self.y_bottom1 = self.height - self.ragnar1.height
 
         except Exception as e:
             logger.error(f"Error loading images: {e}")
             raise
 
-    def update_bjornstatus(self):
-        """ Using getattr to obtain the reference of the attribute with the name stored in self.bjornorch_status"""
+    def update_ragnarstatus(self):
+        """ Using getattr to obtain the reference of the attribute with the name stored in self.ragnarorch_status"""
         try:
-            self.bjornstatusimage = getattr(self, self.bjornorch_status)
-            if self.bjornstatusimage is None:
+            self.ragnarstatusimage = getattr(self, self.ragnarorch_status)
+            if self.ragnarstatusimage is None:
                 raise AttributeError
         except AttributeError:
-            logger.warning(f"The image for status {self.bjornorch_status} is not available, using IDLE image by default.")
-            self.bjornstatusimage = self.attack
+            logger.warning(f"The image for status {self.ragnarorch_status} is not available, using IDLE image by default.")
+            self.ragnarstatusimage = self.attack
         
-        self.bjornstatustext = self.bjornorch_status  # Mettre à jour le texte du statut
+        self.ragnarstatustext = self.ragnarorch_status  # Mettre à jour le texte du statut
 
 
     def load_image(self, image_path):
@@ -616,7 +616,7 @@ class SharedData:
     def update_image_randomizer(self):
         """Update the image randomizer and the imagegen variable."""
         try:
-            status = self.bjornstatustext
+            status = self.ragnarstatustext
             if status in self.image_series and self.image_series[status]:
                 random_index = random.randint(0, len(self.image_series[status]) - 1)
                 self.imagegen = self.image_series[status][random_index]

@@ -1,18 +1,18 @@
 #!/bin/bash
 
-# Bjorn Web Interface Fix and Test Script
+# ragnar Web Interface Fix and Test Script
 # This script fixes all issues with the modern web interface and ensures it works properly
 
-echo "🔧 Bjorn Web Interface - Complete Fix & Test"
+echo "🔧 ragnar Web Interface - Complete Fix & Test"
 echo "=============================================="
 
 # Function to check if service is running
 check_service() {
-    if systemctl is-active --quiet bjorn; then
-        echo "✅ Bjorn service is running"
+    if systemctl is-active --quiet ragnar; then
+        echo "✅ ragnar service is running"
         return 0
     else
-        echo "❌ Bjorn service is not running"
+        echo "❌ ragnar service is not running"
         return 1
     fi
 }
@@ -44,7 +44,7 @@ test_modern_interface() {
     done
     
     # Test static files
-    static_files=("/web/scripts/bjorn_modern.js" "/web/images/favicon.ico")
+    static_files=("/web/scripts/ragnar_modern.js" "/web/images/favicon.ico")
     
     for file in "${static_files[@]}"; do
         if curl -s -f "http://${host}:${port}${file}" > /dev/null; then
@@ -60,16 +60,16 @@ fix_permissions() {
     echo "🔐 Fixing file permissions..."
     
     # Make scripts executable
-    chmod +x /home/bjorn/Bjorn/*.sh
+    chmod +x /home/ragnar/ragnar/*.sh
     
     # Fix web directory permissions
-    chmod -R 644 /home/bjorn/Bjorn/web/
-    chmod 755 /home/bjorn/Bjorn/web/
-    find /home/bjorn/Bjorn/web/ -type d -exec chmod 755 {} \;
+    chmod -R 644 /home/ragnar/ragnar/web/
+    chmod 755 /home/ragnar/ragnar/web/
+    find /home/ragnar/ragnar/web/ -type d -exec chmod 755 {} \;
     
     # Fix Python file permissions
-    chmod 644 /home/bjorn/Bjorn/*.py
-    chmod 644 /home/bjorn/Bjorn/web/scripts/*.js
+    chmod 644 /home/ragnar/ragnar/*.py
+    chmod 644 /home/ragnar/ragnar/web/scripts/*.js
     
     echo "✅ File permissions fixed"
 }
@@ -79,10 +79,10 @@ validate_files() {
     echo "📁 Validating required files..."
     
     required_files=(
-        "/home/bjorn/Bjorn/webapp_modern.py"
-        "/home/bjorn/Bjorn/web/index_modern.html"
-        "/home/bjorn/Bjorn/web/scripts/bjorn_modern.js"
-        "/home/bjorn/Bjorn/config/actions.json"
+        "/home/ragnar/ragnar/webapp_modern.py"
+        "/home/ragnar/ragnar/web/index_modern.html"
+        "/home/ragnar/ragnar/web/scripts/ragnar_modern.js"
+        "/home/ragnar/ragnar/config/actions.json"
     )
     
     for file in "${required_files[@]}"; do
@@ -95,25 +95,25 @@ validate_files() {
     done
 }
 
-# Function to check Bjorn.py configuration
-check_bjorn_config() {
-    echo "⚙️ Checking Bjorn.py configuration..."
+# Function to check ragnar.py configuration
+check_ragnar_config() {
+    echo "⚙️ Checking ragnar.py configuration..."
     
-    local bjorn_file="/home/bjorn/Bjorn/Bjorn.py"
+    local ragnar_file="/home/ragnar/ragnar/ragnar.py"
     
-    if grep -q "from webapp_modern import run_server" "$bjorn_file"; then
-        echo "✅ Bjorn.py configured for modern webapp"
+    if grep -q "from webapp_modern import run_server" "$ragnar_file"; then
+        echo "✅ ragnar.py configured for modern webapp"
     else
-        echo "🔄 Configuring Bjorn.py for modern webapp..."
+        echo "🔄 Configuring ragnar.py for modern webapp..."
         
         # Create backup
-        cp "$bjorn_file" "${bjorn_file}.backup.$(date +%Y%m%d_%H%M%S)"
+        cp "$ragnar_file" "${ragnar_file}.backup.$(date +%Y%m%d_%H%M%S)"
         
         # Update imports and threading
-        sed -i 's/from webapp import web_thread/from webapp_modern import run_server/' "$bjorn_file"
-        sed -i 's/web_thread = threading.Thread(target=web_thread)/web_thread = threading.Thread(target=run_server)/' "$bjorn_file"
+        sed -i 's/from webapp import web_thread/from webapp_modern import run_server/' "$ragnar_file"
+        sed -i 's/web_thread = threading.Thread(target=web_thread)/web_thread = threading.Thread(target=run_server)/' "$ragnar_file"
         
-        echo "✅ Bjorn.py updated for modern webapp"
+        echo "✅ ragnar.py updated for modern webapp"
     fi
 }
 
@@ -157,11 +157,11 @@ show_final_status() {
         # Show last few log entries
         echo ""
         echo "📋 Recent Logs:"
-        sudo journalctl -u bjorn --no-pager -n 5
+        sudo journalctl -u ragnar --no-pager -n 5
         
     else
         echo "❌ Service Status: NOT RUNNING"
-        echo "To start: sudo systemctl start bjorn"
+        echo "To start: sudo systemctl start ragnar"
     fi
 }
 
@@ -178,12 +178,12 @@ fi
 # Step 2: Fix permissions
 fix_permissions
 
-# Step 3: Check and fix Bjorn.py configuration
-check_bjorn_config
+# Step 3: Check and fix ragnar.py configuration
+check_ragnar_config
 
 # Step 4: Restart service to apply changes
-echo "🔄 Restarting Bjorn service..."
-sudo systemctl restart bjorn
+echo "🔄 Restarting ragnar service..."
+sudo systemctl restart ragnar
 
 # Wait for service to start
 echo "⏳ Waiting for service to start..."
@@ -208,7 +208,7 @@ if check_service; then
     
 else
     echo "❌ Service failed to start. Check logs:"
-    sudo journalctl -u bjorn --no-pager -n 10
+    sudo journalctl -u ragnar --no-pager -n 10
 fi
 
 # Step 8: Show final status
@@ -224,4 +224,4 @@ echo "- Credentials: Discovered login pairs"
 echo "- Loot: Stolen data files"
 echo "- Config: Live configuration editing"
 echo ""
-echo "Use 'sudo journalctl -u bjorn -f' to monitor logs in real-time"
+echo "Use 'sudo journalctl -u ragnar -f' to monitor logs in real-time"

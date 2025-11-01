@@ -2,7 +2,7 @@
 
 ## 🚀 What's New?
 
-The Bjorn web interface has been completely modernized with:
+The ragnar web interface has been completely modernized with:
 
 ### Backend Improvements
 - ✅ **Fast Flask Server** - Replaces slow SimpleHTTPRequestHandler
@@ -23,9 +23,9 @@ The Bjorn web interface has been completely modernized with:
 ### New Installation (Recommended)
 The modern interface is now included in the main installer:
 ```bash
-cd /home/bjorn/Bjorn
+cd /home/ragnar/ragnar
 git pull  # if updating existing installation
-sudo bash install_bjorn.sh
+sudo bash install_ragnar.sh
 ```
 
 The installer will:
@@ -35,9 +35,9 @@ The installer will:
 - Set up all scripts and permissions
 
 ### Updating Existing Installation
-If you already have Bjorn installed:
+If you already have ragnar installed:
 ```bash
-cd /home/bjorn/Bjorn
+cd /home/ragnar/ragnar
 git pull
 
 # Install Flask dependencies (skips if already installed)
@@ -47,8 +47,8 @@ sudo pip3 install --break-system-packages flask>=3.0.0 flask-socketio>=5.3.0 fla
 ./switch_webapp.sh
 # Select option 1
 
-# Restart Bjorn
-sudo systemctl restart bjorn
+# Restart ragnar
+sudo systemctl restart ragnar
 ```
 
 ## 🎯 Usage
@@ -59,7 +59,7 @@ sudo systemctl restart bjorn
 
 Examples:
 - `http://192.168.1.100:8000`
-- `http://bjorn.local:8000` (if mDNS is working)
+- `http://ragnar.local:8000` (if mDNS is working)
 
 ### Using the New Interface
 
@@ -95,14 +95,14 @@ http://[your-pi]:8000
 ```
 
 ### Switching Back to Old Interface (If Needed)
-1. Edit `Bjorn.py` to import old webapp:
+1. Edit `ragnar.py` to import old webapp:
 ```python
 from webapp import web_thread  # Instead of webapp_modern
 ```
 
-2. Restart Bjorn:
+2. Restart ragnar:
 ```bash
-sudo systemctl restart bjorn
+sudo systemctl restart ragnar
 ```
 
 ## 🐛 Troubleshooting
@@ -113,10 +113,10 @@ sudo systemctl restart bjorn
 pip3 list | grep -i flask
 
 # Check if service is running
-sudo systemctl status bjorn
+sudo systemctl status ragnar
 
 # Check logs
-sudo journalctl -u bjorn -f
+sudo journalctl -u ragnar -f
 ```
 
 ### Port Already in Use
@@ -125,7 +125,7 @@ sudo journalctl -u bjorn -f
 sudo lsof -ti:8000 | xargs sudo kill -9
 
 # Restart service
-sudo systemctl restart bjorn
+sudo systemctl restart ragnar
 ```
 
 ### WebSocket Not Connecting
@@ -153,7 +153,7 @@ pip3 list | grep flask-socketio
 Edit `web/index_modern.html` Tailwind config:
 ```javascript
 colors: {
-    bjorn: {
+    ragnar: {
         500: '#YOUR_COLOR_HERE',
     }
 }
@@ -180,7 +180,7 @@ socketio.sleep(2)  # Change from 2 seconds to your preference
 ## 📝 API Endpoints
 
 ### Status
-- `GET /api/status` - Current Bjorn status
+- `GET /api/status` - Current ragnar status
 - `GET /api/config` - Current configuration
 - `POST /api/config` - Update configuration
 
@@ -207,15 +207,15 @@ socketio.sleep(2)  # Change from 2 seconds to your preference
 ## 🤝 Support
 
 If you encounter issues:
-1. Check the logs: `sudo journalctl -u bjorn -f`
+1. Check the logs: `sudo journalctl -u ragnar -f`
 2. Verify dependencies: `pip3 list`
 3. Test connectivity: `curl http://localhost:8000/api/status`
-4. Restart service: `sudo systemctl restart bjorn`
+4. Restart service: `sudo systemctl restart ragnar`
 
 ## 📄 License
 
-Same as Bjorn project - Check main LICENSE file
+Same as ragnar project - Check main LICENSE file
 
 ---
 
-**Enjoy the modernized Bjorn interface!** 🎉
+**Enjoy the modernized ragnar interface!** 🎉

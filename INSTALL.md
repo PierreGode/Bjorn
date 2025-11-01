@@ -22,21 +22,21 @@ https://www.raspberrypi.com/software/
       - System: 32-bit
       - Kernel version: 6.6
       - Debian version: 12 (bookworm) '2024-10-22-raspios-bookworm-armhf-lite'
-- Username and hostname set to `bjorn`.
+- Username and hostname set to `ragnar`.
 - 2.13-inch e-Paper HAT connected to GPIO pins.
 
 ### 📌 Prerequisites for RPI zero W2 (64bits)
 
 ![image](https://github.com/user-attachments/assets/e8d276be-4cb2-474d-a74d-b5b6704d22f5)
 
-I did not develop Bjorn for the raspberry pi zero w2 64bits, but several feedbacks have attested that the installation worked perfectly.
+I did not develop ragnar for the raspberry pi zero w2 64bits, but several feedbacks have attested that the installation worked perfectly.
 
 - Raspberry Pi OS installed. 
     - Stable:
       - System: 64-bit
       - Kernel version: 6.6
       - Debian version: 12 (bookworm) '2024-10-22-raspios-bookworm-arm64-lite'
-- Username and hostname set to `bjorn`.
+- Username and hostname set to `ragnar`.
 - 2.13-inch e-Paper HAT connected to GPIO pins.
 
 
@@ -46,13 +46,13 @@ I juste hope the V1 & V3 will work the same.
  
 ### ⚡ Quick Install
 
-The fastest way to install Bjorn is using the automatic installation script :
+The fastest way to install ragnar is using the automatic installation script :
 
 ```bash
 # Download and run the installer
-wget https://raw.githubusercontent.com/infinition/Bjorn/refs/heads/main/install_bjorn.sh
-sudo chmod +x install_bjorn.sh
-sudo ./install_bjorn.sh
+wget https://raw.githubusercontent.com/infinition/ragnar/refs/heads/main/install_ragnar.sh
+sudo chmod +x install_ragnar.sh
+sudo ./install_ragnar.sh
 # Choose the choice 1 for automatic installation. It may take a while as a lot of packages and modules will be installed. You must reboot at the end.
 ```
 
@@ -107,13 +107,13 @@ sudo nmap --script-updatedb
 
 ```
 
-#### Step 3: Bjorn Installation
+#### Step 3: ragnar Installation
 
 ```bash
-# Clone the Bjorn repository
-cd /home/bjorn
-git clone https://github.com/infinition/Bjorn.git
-cd Bjorn
+# Clone the ragnar repository
+cd /home/ragnar
+git clone https://github.com/infinition/ragnar.git
+cd ragnar
 
 # Install Python dependencies within the virtual environment
 sudo pip install -r requirements.txt --break-system-packages
@@ -125,7 +125,7 @@ Choose your e-Paper HAT version by modifying the configuration file:
 
 1. Open the configuration file:
 ```bash
-sudo vi /home/bjorn/Bjorn/config/shared_config.json
+sudo vi /home/ragnar/ragnar/config/shared_config.json
 ```
 Press i to enter insert mode
 Locate the line containing "epd_type":
@@ -248,34 +248,34 @@ This ensures that the limits set in `/etc/security/limits.conf` are enforced for
 
 #### Step 7: Configure Services
 
-##### 7.1: Bjorn Service
+##### 7.1: ragnar Service
 
 Create the service file:
 
 ```bash
-sudo vi /etc/systemd/system/bjorn.service
+sudo vi /etc/systemd/system/ragnar.service
 ```
 
 Add the following content:
 
 ```ini
 [Unit]
-Description=Bjorn Service
+Description=ragnar Service
 DefaultDependencies=no
 Before=basic.target
 After=local-fs.target
 
 [Service]
-ExecStartPre=/home/bjorn/Bjorn/kill_port_8000.sh
-ExecStart=/usr/bin/python3 /home/bjorn/Bjorn/Bjorn.py
-WorkingDirectory=/home/bjorn/Bjorn
+ExecStartPre=/home/ragnar/ragnar/kill_port_8000.sh
+ExecStart=/usr/bin/python3 /home/ragnar/ragnar/ragnar.py
+WorkingDirectory=/home/ragnar/ragnar
 StandardOutput=inherit
 StandardError=inherit
 Restart=always
 User=root
 
 # Check open files and restart if it reached the limit (ulimit -n buffer of 1000)
-ExecStartPost=/bin/bash -c 'FILE_LIMIT=$(ulimit -n); THRESHOLD=$(( FILE_LIMIT - 1000 )); while :; do TOTAL_OPEN_FILES=$(lsof | wc -l); if [ "$TOTAL_OPEN_FILES" -ge "$THRESHOLD" ]; then echo "File descriptor threshold reached: $TOTAL_OPEN_FILES (threshold: $THRESHOLD). Restarting service."; systemctl restart bjorn.service; exit 0; fi; sleep 10; done &'
+ExecStartPost=/bin/bash -c 'FILE_LIMIT=$(ulimit -n); THRESHOLD=$(( FILE_LIMIT - 1000 )); while :; do TOTAL_OPEN_FILES=$(lsof | wc -l); if [ "$TOTAL_OPEN_FILES" -ge "$THRESHOLD" ]; then echo "File descriptor threshold reached: $TOTAL_OPEN_FILES (threshold: $THRESHOLD). Restarting service."; systemctl restart ragnar.service; exit 0; fi; sleep 10; done &'
 
 [Install]
 WantedBy=multi-user.target
@@ -288,7 +288,7 @@ WantedBy=multi-user.target
 Create the script to free up port 8000:
 
 ```bash
-vi /home/bjorn/Bjorn/kill_port_8000.sh
+vi /home/ragnar/ragnar/kill_port_8000.sh
 ```
 
 Add:
@@ -307,7 +307,7 @@ fi
 Make the script executable:
 
 ```bash
-chmod +x /home/bjorn/Bjorn/kill_port_8000.sh
+chmod +x /home/ragnar/ragnar/kill_port_8000.sh
 ```
 
 
@@ -465,4 +465,4 @@ Set the static IP address on your Windows PC:
 
 ## 📜 License
 
-2024 - Bjorn is distributed under the MIT License. For more details, please refer to the [LICENSE](LICENSE) file included in this repository.
+2024 - ragnar is distributed under the MIT License. For more details, please refer to the [LICENSE](LICENSE) file included in this repository.

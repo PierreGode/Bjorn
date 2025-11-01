@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# BJORN Installation Script
-# This script handles the complete installation of BJORN
+# ragnar Installation Script
+# This script handles the complete installation of ragnar
 # Author: infinition
 # Version: 1.0 - 071124 - 0954
 
@@ -13,19 +13,19 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Logging configuration
-LOG_DIR="/var/log/bjorn_install"
+LOG_DIR="/var/log/ragnar_install"
 mkdir -p "$LOG_DIR"
-LOG_FILE="$LOG_DIR/bjorn_install_$(date +%Y%m%d_%H%M%S).log"
+LOG_FILE="$LOG_DIR/ragnar_install_$(date +%Y%m%d_%H%M%S).log"
 VERBOSE=false
 
 # Global variables
-BJORN_USER="bjorn"
-BJORN_PATH="/home/${BJORN_USER}/Bjorn"
+ragnar_USER="ragnar"
+ragnar_PATH="/home/${ragnar_USER}/ragnar"
 CURRENT_STEP=0
 TOTAL_STEPS=9
 
 if [[ "$1" == "--help" ]]; then
-    echo "Usage: sudo ./install_bjorn.sh"
+    echo "Usage: sudo ./install_ragnar.sh"
     echo "Make sure you have the necessary permissions and that all dependencies are met."
     exit 0
 fi
@@ -344,30 +344,30 @@ configure_interfaces() {
     check_success "Interface configuration completed"
 }
 
-# Setup BJORN
-setup_bjorn() {
-    log "INFO" "Setting up BJORN..."
+# Setup ragnar
+setup_ragnar() {
+    log "INFO" "Setting up ragnar..."
     
-    # Create BJORN user if it doesn't exist
-    if ! id -u $BJORN_USER >/dev/null 2>&1; then
-        adduser --disabled-password --gecos "" $BJORN_USER
-        check_success "Created BJORN user"
+    # Create ragnar user if it doesn't exist
+    if ! id -u $ragnar_USER >/dev/null 2>&1; then
+        adduser --disabled-password --gecos "" $ragnar_USER
+        check_success "Created ragnar user"
     fi
 
-    # Check for existing BJORN directory
-    cd /home/$BJORN_USER
-    if [ -d "Bjorn" ]; then
-        log "INFO" "Using existing BJORN directory"
-        echo -e "${GREEN}Using existing BJORN directory${NC}"
+    # Check for existing ragnar directory
+    cd /home/$ragnar_USER
+    if [ -d "ragnar" ]; then
+        log "INFO" "Using existing ragnar directory"
+        echo -e "${GREEN}Using existing ragnar directory${NC}"
     else
         # No existing directory, proceed with clone
-        log "INFO" "Cloning BJORN repository"
-        #git clone https://github.com/infinition/Bjorn.git
-        git clone https://github.com/PierreGode/Bjorn.git
-        check_success "Cloned BJORN repository"
+        log "INFO" "Cloning ragnar repository"
+        #git clone https://github.com/infinition/ragnar.git
+        git clone https://github.com/PierreGode/ragnar.git
+        check_success "Cloned ragnar repository"
     fi
 
-    cd Bjorn
+    cd ragnar
 
     # Update the shared_config.json file with the selected EPD version
     log "INFO" "Updating E-Paper display configuration..."
@@ -460,15 +460,15 @@ setup_bjorn() {
 
     # Configure modern webapp by default
     log "INFO" "Configuring modern web interface..."
-    if [ -f "$BJORN_PATH/Bjorn.py" ] && [ -f "$BJORN_PATH/webapp_modern.py" ]; then
-        # Backup original Bjorn.py if not already backed up
-        if [ ! -f "$BJORN_PATH/Bjorn.py.original" ]; then
-            cp "$BJORN_PATH/Bjorn.py" "$BJORN_PATH/Bjorn.py.original"
+    if [ -f "$ragnar_PATH/ragnar.py" ] && [ -f "$ragnar_PATH/webapp_modern.py" ]; then
+        # Backup original ragnar.py if not already backed up
+        if [ ! -f "$ragnar_PATH/ragnar.py.original" ]; then
+            cp "$ragnar_PATH/ragnar.py" "$ragnar_PATH/ragnar.py.original"
         fi
         
-        # Update Bjorn.py to use modern webapp
-        if grep -q "from webapp import web_thread" "$BJORN_PATH/Bjorn.py"; then
-            sed -i 's/from webapp import web_thread/# Old webapp - replaced with modern\n# from webapp import web_thread\nfrom webapp_modern import run_server as web_thread/' "$BJORN_PATH/Bjorn.py"
+        # Update ragnar.py to use modern webapp
+        if grep -q "from webapp import web_thread" "$ragnar_PATH/ragnar.py"; then
+            sed -i 's/from webapp import web_thread/# Old webapp - replaced with modern\n# from webapp import web_thread\nfrom webapp_modern import run_server as web_thread/' "$ragnar_PATH/ragnar.py"
             log "SUCCESS" "Configured to use modern web interface"
         else
             log "INFO" "Modern webapp already configured or different setup detected"
@@ -478,20 +478,20 @@ setup_bjorn() {
     fi
 
     # Set correct permissions and ownership
-    chown -R $BJORN_USER:$BJORN_USER /home/$BJORN_USER/Bjorn
-    chmod -R 755 /home/$BJORN_USER/Bjorn
+    chown -R $ragnar_USER:$ragnar_USER /home/$ragnar_USER/ragnar
+    chmod -R 755 /home/$ragnar_USER/ragnar
     
     # Make utility scripts executable with proper ownership
-    chmod +x $BJORN_PATH/switch_webapp.sh 2>/dev/null || true
-    chmod +x $BJORN_PATH/kill_port_8000.sh 2>/dev/null || true
-    chmod +x $BJORN_PATH/update_bjorn.sh 2>/dev/null || true
-    chmod +x $BJORN_PATH/quick_update.sh 2>/dev/null || true
-    chmod +x $BJORN_PATH/uninstall_bjorn.sh 2>/dev/null || true
-    chmod +x $BJORN_PATH/wifi_fix.sh 2>/dev/null || true
-    chmod +x $BJORN_PATH/install_modern_webapp.sh 2>/dev/null || true
+    chmod +x $ragnar_PATH/switch_webapp.sh 2>/dev/null || true
+    chmod +x $ragnar_PATH/kill_port_8000.sh 2>/dev/null || true
+    chmod +x $ragnar_PATH/update_ragnar.sh 2>/dev/null || true
+    chmod +x $ragnar_PATH/quick_update.sh 2>/dev/null || true
+    chmod +x $ragnar_PATH/uninstall_ragnar.sh 2>/dev/null || true
+    chmod +x $ragnar_PATH/wifi_fix.sh 2>/dev/null || true
+    chmod +x $ragnar_PATH/install_modern_webapp.sh 2>/dev/null || true
     
-    # Ensure bjorn user owns all script files
-    chown $BJORN_USER:$BJORN_USER $BJORN_PATH/*.sh 2>/dev/null || true
+    # Ensure ragnar user owns all script files
+    chown $ragnar_USER:$ragnar_USER $ragnar_PATH/*.sh 2>/dev/null || true
     
     # Validate and fix actions.json file
     log "INFO" "Validating actions.json configuration..."
@@ -499,7 +499,7 @@ setup_bjorn() {
 import json
 import os
 
-actions_file = "/home/bjorn/Bjorn/config/actions.json"
+actions_file = "/home/ragnar/ragnar/config/actions.json"
 
 # Check if scanning module exists in actions.json
 try:
@@ -530,9 +530,9 @@ except Exception as e:
     print(f"ERROR validating actions.json: {e}")
 PYTHON_EOF
     
-    # Add bjorn user to necessary groups
-    usermod -a -G spi,gpio,i2c $BJORN_USER
-    check_success "Added bjorn user to required groups"
+    # Add ragnar user to necessary groups
+    usermod -a -G spi,gpio,i2c $ragnar_USER
+    check_success "Added ragnar user to required groups"
 }
 
 
@@ -541,7 +541,7 @@ setup_services() {
     log "INFO" "Setting up system services..."
     
     # Create kill_port_8000.sh script
-    cat > $BJORN_PATH/kill_port_8000.sh << 'EOF'
+    cat > $ragnar_PATH/kill_port_8000.sh << 'EOF'
 #!/bin/bash
 PORT=8000
 PIDS=$(lsof -t -i:$PORT)
@@ -550,28 +550,28 @@ if [ -n "$PIDS" ]; then
     kill -9 $PIDS
 fi
 EOF
-    chmod +x $BJORN_PATH/kill_port_8000.sh
-    chown bjorn:bjorn $BJORN_PATH/kill_port_8000.sh
+    chmod +x $ragnar_PATH/kill_port_8000.sh
+    chown ragnar:ragnar $ragnar_PATH/kill_port_8000.sh
 
-    # Create BJORN service
-    cat > /etc/systemd/system/bjorn.service << EOF
+    # Create ragnar service
+    cat > /etc/systemd/system/ragnar.service << EOF
 [Unit]
-Description=Bjorn Service
+Description=ragnar Service
 DefaultDependencies=no
 Before=basic.target
 After=local-fs.target
 
 [Service]
-ExecStartPre=/home/bjorn/Bjorn/kill_port_8000.sh
-ExecStart=/usr/bin/python3 /home/bjorn/Bjorn/Bjorn.py
-WorkingDirectory=/home/bjorn/Bjorn
+ExecStartPre=/home/ragnar/ragnar/kill_port_8000.sh
+ExecStart=/usr/bin/python3 /home/ragnar/ragnar/ragnar.py
+WorkingDirectory=/home/ragnar/ragnar
 StandardOutput=inherit
 StandardError=inherit
 Restart=always
 User=root
 
 # Check open files and restart if it reached the limit (ulimit -n buffer of 1000)
-ExecStartPost=/bin/bash -c 'FILE_LIMIT=\$(ulimit -n); THRESHOLD=\$(( FILE_LIMIT - 1000 )); while :; do TOTAL_OPEN_FILES=\$(lsof | wc -l); if [ "\$TOTAL_OPEN_FILES" -ge "\$THRESHOLD" ]; then echo "File descriptor threshold reached: \$TOTAL_OPEN_FILES (threshold: \$THRESHOLD). Restarting service."; systemctl restart bjorn.service; exit 0; fi; sleep 10; done &'
+ExecStartPost=/bin/bash -c 'FILE_LIMIT=\$(ulimit -n); THRESHOLD=\$(( FILE_LIMIT - 1000 )); while :; do TOTAL_OPEN_FILES=\$(lsof | wc -l); if [ "\$TOTAL_OPEN_FILES" -ge "\$THRESHOLD" ]; then echo "File descriptor threshold reached: \$TOTAL_OPEN_FILES (threshold: \$THRESHOLD). Restarting service."; systemctl restart ragnar.service; exit 0; fi; sleep 10; done &'
 
 [Install]
 WantedBy=multi-user.target
@@ -583,7 +583,7 @@ EOF
 
     # Enable and start services
     systemctl daemon-reload
-    systemctl enable bjorn.service
+    systemctl enable ragnar.service
 
     check_success "Services setup completed"
 }
@@ -690,10 +690,10 @@ verify_installation() {
     log "INFO" "Verifying installation..."
     
     # Check if services are running
-    if ! systemctl is-active --quiet bjorn.service; then
-        log "WARNING" "BJORN service is not running"
+    if ! systemctl is-active --quiet ragnar.service; then
+        log "WARNING" "ragnar service is not running"
     else
-        log "SUCCESS" "BJORN service is running"
+        log "SUCCESS" "ragnar service is running"
     fi
     
     # Check web interface
@@ -709,10 +709,10 @@ verify_installation() {
 clean_exit() {
     local exit_code=$1
     if [ $exit_code -eq 0 ]; then
-        log "SUCCESS" "BJORN installation completed successfully!"
+        log "SUCCESS" "ragnar installation completed successfully!"
         log "INFO" "Log file available at: $LOG_FILE"
     else
-        log "ERROR" "BJORN installation failed!"
+        log "ERROR" "ragnar installation failed!"
         log "ERROR" "Check the log file for details: $LOG_FILE"
     fi
     exit $exit_code
@@ -720,7 +720,7 @@ clean_exit() {
 
 # Main installation process
 main() {
-    log "INFO" "Starting BJORN installation..."
+    log "INFO" "Starting ragnar installation..."
 
     # Check if script is run as root
     if [ "$(id -u)" -ne 0 ]; then
@@ -728,7 +728,7 @@ main() {
         exit 1
     fi
 
-    echo -e "${BLUE}BJORN Installation Options:${NC}"
+    echo -e "${BLUE}ragnar Installation Options:${NC}"
     echo "1. Full installation (recommended)"
     echo "2. Custom installation"
     read -p "Choose an option (1/2): " install_option
@@ -772,8 +772,8 @@ main() {
             CURRENT_STEP=5; show_progress "Configuring interfaces"
             configure_interfaces
 
-            CURRENT_STEP=6; show_progress "Setting up BJORN"
-            setup_bjorn
+            CURRENT_STEP=6; show_progress "Setting up ragnar"
+            setup_ragnar
 
             CURRENT_STEP=7; show_progress "Configuring USB Gadget"
             configure_usb_gadget
@@ -789,14 +789,14 @@ main() {
             read -p "Install dependencies? (y/n): " deps
             read -p "Configure system limits? (y/n): " limits
             read -p "Configure interfaces? (y/n): " interfaces
-            read -p "Setup BJORN? (y/n): " bjorn
+            read -p "Setup ragnar? (y/n): " ragnar
             read -p "Configure USB Gadget? (y/n): " usb_gadget
             read -p "Setup services? (y/n): " services
 
             [ "$deps" = "y" ] && install_dependencies
             [ "$limits" = "y" ] && configure_system_limits
             [ "$interfaces" = "y" ] && configure_interfaces
-            [ "$bjorn" = "y" ] && setup_bjorn
+            [ "$ragnar" = "y" ] && setup_ragnar
             [ "$usb_gadget" = "y" ] && configure_usb_gadget
             [ "$services" = "y" ] && setup_services
             verify_installation
@@ -811,7 +811,7 @@ main() {
     # Use .gitignore to protect runtime data and configurations
     log "INFO" "Git repository preserved for future updates"
 
-    log "SUCCESS" "BJORN installation completed!"
+    log "SUCCESS" "ragnar installation completed!"
     log "INFO" "Please reboot your system to apply all changes."
     echo -e "\n${GREEN}Installation completed successfully!${NC}"
     echo -e "${YELLOW}Important notes:${NC}"
@@ -822,11 +822,11 @@ main() {
     echo "   - DNS Servers: 8.8.8.8, 8.8.4.4"
     echo "2. Web interface will be available at: http://[device-ip]:8000"
     echo "3. Make sure your e-Paper HAT (2.13-inch) is properly connected"
-    echo -e "\n${BLUE}To update Bjorn in the future:${NC}"
-    echo "   cd /home/bjorn/Bjorn"
+    echo -e "\n${BLUE}To update ragnar in the future:${NC}"
+    echo "   cd /home/ragnar/ragnar"
     echo "   sudo git stash  # Save any local changes"
     echo "   sudo git pull   # Get latest updates"
-    echo "   sudo systemctl restart bjorn"
+    echo "   sudo systemctl restart ragnar"
 
     read -p "Would you like to reboot now? (y/n): " reboot_now
     if [ "$reboot_now" = "y" ]; then
@@ -837,7 +837,7 @@ main() {
             exit 1
         fi
     else
-        echo -e "${YELLOW}Reboot your system to apply all changes & run Bjorn service.${NC}"
+        echo -e "${YELLOW}Reboot your system to apply all changes & run ragnar service.${NC}"
     fi
 }
 

@@ -1,6 +1,6 @@
-# 🤝 Contributing to Bjorn
+# 🤝 Contributing to ragnar
 
-We welcome contributions to Bjorn! To make sure the process goes smoothly, please follow these guidelines:
+We welcome contributions to ragnar! To make sure the process goes smoothly, please follow these guidelines:
 
 ## 📋 Code of Conduct
 
@@ -48,4 +48,4 @@ Thank you for helping improve!
 
 ## 📜 License
 
-2024 - Bjorn is distributed under the MIT License. For more details, please refer to the [LICENSE](LICENSE) file included in this repository.
+2024 - ragnar is distributed under the MIT License. For more details, please refer to the [LICENSE](LICENSE) file included in this repository.

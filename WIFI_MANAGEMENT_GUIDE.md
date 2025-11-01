@@ -1,6 +1,6 @@
-# Bjorn Wi-Fi Management System
+# ragnar Wi-Fi Management System
 
-This document describes the autonomous Wi-Fi management system for Bjorn IoT device, which provides robust connectivity with automatic fallback to Access Point mode.
+This document describes the autonomous Wi-Fi management system for ragnar IoT device, which provides robust connectivity with automatic fallback to Access Point mode.
 
 ## Features
 
@@ -41,7 +41,7 @@ This document describes the autonomous Wi-Fi management system for Bjorn IoT dev
 - **Configuration**: Loads/saves Wi-Fi settings from shared configuration
 - **State Machine**: Tracks connection state and handles transitions
 
-#### 2. Bjorn Integration (`Bjorn.py`)
+#### 2. ragnar Integration (`ragnar.py`)
 - **Startup Sequence**: Initializes Wi-Fi manager during boot
 - **Orchestrator Control**: Only starts when Wi-Fi connected
 - **Clean Shutdown**: Properly stops Wi-Fi manager on exit
@@ -52,7 +52,7 @@ This document describes the autonomous Wi-Fi management system for Bjorn IoT dev
 - **User Interface**: Web pages for network configuration
 
 #### 4. System Scripts
-- **Setup Script** (`bjorn_wifi_setup.sh`): System installation and configuration
+- **Setup Script** (`ragnar_wifi_setup.sh`): System installation and configuration
 - **Service Script** (`wifi_manager_service.sh`): Manual Wi-Fi management utilities
 
 ## Installation
@@ -65,7 +65,7 @@ This document describes the autonomous Wi-Fi management system for Bjorn IoT dev
 ### Automatic Setup
 ```bash
 # Run the setup script (as root)
-sudo bash bjorn_wifi_setup.sh
+sudo bash ragnar_wifi_setup.sh
 ```
 
 This will:
@@ -111,8 +111,8 @@ Wi-Fi configuration is stored in the shared configuration file (`config/shared_c
       "added_date": "2024-01-01T12:00:00"
     }
   ],
-  "wifi_ap_ssid": "Bjorn-Setup",
-  "wifi_ap_password": "bjornpassword",
+  "wifi_ap_ssid": "ragnar-Setup",
+  "wifi_ap_password": "ragnarpassword",
   "wifi_connection_timeout": 60,
   "wifi_max_attempts": 3,
   "wifi_scan_interval": 300,
@@ -127,7 +127,7 @@ Networks are prioritized by the `priority` field (higher = more preferred). The 
 ## Operation
 
 ### Boot Sequence
-1. **System startup** - Bjorn starts and initializes Wi-Fi manager
+1. **System startup** - ragnar starts and initializes Wi-Fi manager
 2. **Startup delay** - Waits for system to stabilize (configurable)
 3. **Connection attempts** - Tries to connect to known networks
 4. **Fallback decision** - After timeout, starts AP mode if no connection
@@ -135,8 +135,8 @@ Networks are prioritized by the `priority` field (higher = more preferred). The 
 
 ### AP Mode
 When no Wi-Fi connection is available:
-- **SSID**: `Bjorn-Setup` (configurable)
-- **Password**: `bjornpassword` (configurable)
+- **SSID**: `ragnar-Setup` (configurable)
+- **Password**: `ragnarpassword` (configurable)
 - **IP Range**: 192.168.4.1/24
 - **DHCP**: 192.168.4.2 - 192.168.4.20
 - **Web Interface**: http://192.168.4.1:5000
@@ -186,30 +186,30 @@ Access via `/wifi` or the navigation menu:
 
 After installation, several utility commands are available:
 
-### bjorn-wifi-status
+### ragnar-wifi-status
 Shows comprehensive Wi-Fi status:
 ```bash
-bjorn-wifi-status
+ragnar-wifi-status
 ```
 
-### bjorn-wifi-connect
+### ragnar-wifi-connect
 Connect to a Wi-Fi network:
 ```bash
 # With password
-bjorn-wifi-connect "MyNetwork" "mypassword"
+ragnar-wifi-connect "MyNetwork" "mypassword"
 
 # Open network
-bjorn-wifi-connect "OpenNetwork"
+ragnar-wifi-connect "OpenNetwork"
 ```
 
-### bjorn-wifi-ap
+### ragnar-wifi-ap
 Control AP mode:
 ```bash
 # Start AP mode
-bjorn-wifi-ap start
+ragnar-wifi-ap start
 
 # Stop AP mode
-bjorn-wifi-ap stop
+ragnar-wifi-ap stop
 ```
 
 ### wifi_manager_service.sh
@@ -256,20 +256,20 @@ nmcli con show
 
 ```bash
 # Test hostapd manually
-sudo hostapd /tmp/bjorn/hostapd.conf
+sudo hostapd /tmp/ragnar/hostapd.conf
 
 # Check dnsmasq
-sudo dnsmasq -C /tmp/bjorn/dnsmasq.conf --no-daemon
+sudo dnsmasq -C /tmp/ragnar/dnsmasq.conf --no-daemon
 ```
 
 #### Web interface not accessible
-1. **Service status**: Check if Bjorn web server is running
+1. **Service status**: Check if ragnar web server is running
 2. **Firewall**: Ensure port 5000 is not blocked
 3. **IP address**: Verify correct IP for AP mode (192.168.4.1)
 
 ```bash
-# Check Bjorn service
-sudo systemctl status bjorn
+# Check ragnar service
+sudo systemctl status ragnar
 
 # Check port binding
 sudo netstat -tlnp | grep :5000
@@ -279,11 +279,11 @@ sudo netstat -tlnp | grep :5000
 
 #### Application Logs
 ```bash
-# Bjorn main log
+# ragnar main log
 tail -f data/logs/temp_log.txt
 
 # System Wi-Fi manager log
-sudo journalctl -u bjorn-wifi -f
+sudo journalctl -u ragnar-wifi -f
 ```
 
 #### System Logs
@@ -311,8 +311,8 @@ Enable debug logging in configuration:
 # Remove all known networks
 rm -f config/shared_config.json
 
-# Restart Bjorn to regenerate config
-sudo systemctl restart bjorn
+# Restart ragnar to regenerate config
+sudo systemctl restart ragnar
 ```
 
 #### Reset NetworkManager
@@ -327,10 +327,10 @@ sudo systemctl restart NetworkManager
 #### Factory reset Wi-Fi
 ```bash
 # Uninstall Wi-Fi management
-sudo bjorn-wifi-uninstall
+sudo ragnar-wifi-uninstall
 
 # Reinstall fresh
-sudo bash bjorn_wifi_setup.sh
+sudo bash ragnar_wifi_setup.sh
 ```
 
 ## Advanced Configuration

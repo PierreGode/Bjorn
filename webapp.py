@@ -68,8 +68,8 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.serve_file_gzipped(os.path.join(self.shared_data.webdir, 'network.html'), 'text/html')
         elif self.path == '/netkb.html':
             self.serve_file_gzipped(os.path.join(self.shared_data.webdir, 'netkb.html'), 'text/html')
-        elif self.path == '/bjorn.html':
-            self.serve_file_gzipped(os.path.join(self.shared_data.webdir, 'bjorn.html'), 'text/html')
+        elif self.path == '/ragnar.html':
+            self.serve_file_gzipped(os.path.join(self.shared_data.webdir, 'ragnar.html'), 'text/html')
         elif self.path == '/loot.html':
             self.serve_file_gzipped(os.path.join(self.shared_data.webdir, 'loot.html'), 'text/html')
         elif self.path == '/credentials.html':

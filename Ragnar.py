@@ -1,18 +1,21 @@
-#bjorn.py
-# This script defines the main execution flow for the Bjorn application. It initializes and starts
-# various components such as network scanning, display, and web server functionalities. The Bjorn 
-# class manages the primary operations, including initiating network scans and orchestrating tasks.
-# The script handles startup delays, checks for Wi-Fi connectivity, and coordinates the execution of
-# scanning and orchestrator tasks using semaphores to limit concurrent threads. It also sets up 
-# signal handlers to ensure a clean exit when the application is terminated.
+#ragnar.py
+# This script defines the main execution flow for the Ragnar application. It initializes and starts
+# various components such as network scanning, display, and web server functionalities. The Ragnar 
+# application serves as a comprehensive IoT security tool designed for network analysis and penetration testing.
+# It integrates various modules to provide a unified platform for cybersecurity professionals and enthusiasts.
 
-# Functions:
-# - handle_exit:  handles the termination of the main and display threads.
-# - handle_exit_webserver:  handles the termination of the web server thread.
-# - is_wifi_connected: Checks for Wi-Fi connectivity using the nmcli command.
+# Essential imports for the application
+import asyncio
+import os
+import signal
+import threading
+import time
+import atexit
+import fcntl
+import logging
+from collections import defaultdict
 
-# The script starts by loading shared data configurations, then initializes and sta
-# bjorn.py
+# ragnar.py
 
 
 import threading
@@ -29,10 +32,10 @@ from orchestrator import Orchestrator
 from logger import Logger
 from wifi_manager import WiFiManager
 
-logger = Logger(name="Bjorn.py", level=logging.DEBUG)
+logger = Logger(name="Ragnar.py", level=logging.DEBUG)
 
-class Bjorn:
-    """Main class for Bjorn. Manages the primary operations of the application."""
+class Ragnar:
+    """Main class for Ragnar. Manages the primary operations of the application."""
     def __init__(self, shared_data):
         self.shared_data = shared_data
         self.commentaire_ia = Commentaireia()
@@ -41,15 +44,15 @@ class Bjorn:
         self.wifi_manager = WiFiManager(shared_data)
         
         # Set reference to this instance in shared_data for other modules
-        self.shared_data.bjorn_instance = self
+        self.shared_data.ragnar_instance = self
 
     def run(self):
-        """Main loop for Bjorn. Waits for Wi-Fi connection and starts Orchestrator."""
+        """Main loop for Ragnar. Waits for Wi-Fi connection and starts Orchestrator."""
         # Initialize Wi-Fi management system
         logger.info("Starting Wi-Fi management system...")
         self.wifi_manager.start()
         
-        # Main loop to keep Bjorn running
+        # Main loop to keep Ragnar running
         while not self.shared_data.should_exit:
             if not self.shared_data.manual_mode:
                 self.check_and_start_orchestrator()
@@ -97,15 +100,15 @@ class Bjorn:
             self.shared_data.orchestrator_should_exit = True
             self.orchestrator_thread.join()
             logger.info("Orchestrator thread stopped.")
-            self.shared_data.bjornorch_status = "IDLE"
-            self.shared_data.bjornstatustext2 = ""
+            self.shared_data.ragnarorch_status = "IDLE"
+            self.shared_data.ragnarstatustext2 = ""
             self.shared_data.manual_mode = True
         else:
             logger.info("Orchestrator thread is not running.")
 
     def stop(self):
-        """Stop Bjorn and cleanup all resources."""
-        logger.info("Stopping Bjorn...")
+        """Stop Ragnar and cleanup all resources."""
+        logger.info("Stopping Ragnar...")
         
         # Stop orchestrator
         self.stop_orchestrator()
@@ -120,7 +123,7 @@ class Bjorn:
         self.shared_data.display_should_exit = True
         self.shared_data.webapp_should_exit = True
         
-        logger.info("Bjorn stopped successfully")
+        logger.info("Ragnar stopped successfully")
 
     def is_wifi_connected(self):
         """Legacy method - use wifi_manager for new code."""
@@ -140,13 +143,13 @@ class Bjorn:
         display_thread.start()
         return display_thread
 
-def handle_exit(sig, frame, display_thread, bjorn_thread, web_thread):
+def handle_exit(sig, frame, display_thread, ragnar_thread, web_thread):
     """Handles the termination of the main, display, and web threads."""
     logger.info("Received exit signal, initiating clean shutdown...")
     
-    # Stop Bjorn instance first
-    if hasattr(shared_data, 'bjorn_instance') and shared_data.bjorn_instance:
-        shared_data.bjorn_instance.stop()
+    # Stop Ragnar instance first
+    if hasattr(shared_data, 'ragnar_instance') and shared_data.ragnar_instance:
+        shared_data.ragnar_instance.stop()
     
     # Set all exit flags
     shared_data.should_exit = True
@@ -159,8 +162,8 @@ def handle_exit(sig, frame, display_thread, bjorn_thread, web_thread):
     
     if display_thread and display_thread.is_alive():
         display_thread.join(timeout=5)
-    if bjorn_thread and bjorn_thread.is_alive():
-        bjorn_thread.join(timeout=5)
+    if ragnar_thread and ragnar_thread.is_alive():
+        ragnar_thread.join(timeout=5)
     if web_thread and web_thread.is_alive():
         web_thread.join(timeout=5)
     
@@ -178,13 +181,13 @@ if __name__ == "__main__":
 
         logger.info("Starting display thread...")
         shared_data.display_should_exit = False  # Initialize display should_exit
-        display_thread = Bjorn.start_display()
+        display_thread = Ragnar.start_display()
 
-        logger.info("Starting Bjorn thread...")
-        bjorn = Bjorn(shared_data)
-        shared_data.bjorn_instance = bjorn  # Assigner l'instance de Bjorn à shared_data
-        bjorn_thread = threading.Thread(target=bjorn.run)
-        bjorn_thread.start()
+        logger.info("Starting Ragnar thread...")
+        ragnar = Ragnar(shared_data)
+        shared_data.ragnar_instance = ragnar  # Assigner l'instance de Ragnar à shared_data
+        ragnar_thread = threading.Thread(target=ragnar.run)
+        ragnar_thread.start()
 
         if shared_data.config["websrv"]:
             logger.info("Starting the web server...")
@@ -193,8 +196,8 @@ if __name__ == "__main__":
         else:
             web_thread = None
 
-        signal.signal(signal.SIGINT, lambda sig, frame: handle_exit(sig, frame, display_thread, bjorn_thread, web_thread))
-        signal.signal(signal.SIGTERM, lambda sig, frame: handle_exit(sig, frame, display_thread, bjorn_thread, web_thread))
+        signal.signal(signal.SIGINT, lambda sig, frame: handle_exit(sig, frame, display_thread, ragnar_thread, web_thread))
+        signal.signal(signal.SIGTERM, lambda sig, frame: handle_exit(sig, frame, display_thread, ragnar_thread, web_thread))
 
     except Exception as e:
         logger.error(f"An exception occurred during thread start: {e}")

@@ -1,8 +1,8 @@
 #!/bin/bash
-# Quick installer for Bjorn Modern Web Interface
+# Quick installer for ragnar Modern Web Interface
 
 echo "================================================"
-echo "Bjorn Modern Web Interface - Quick Installer"
+echo "ragnar Modern Web Interface - Quick Installer"
 echo "================================================"
 echo ""
 
@@ -12,15 +12,15 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# Check if Bjorn directory exists
-BJORN_DIR="/home/bjorn/Bjorn"
-if [ ! -d "$BJORN_DIR" ]; then
-    echo "❌ Bjorn directory not found at $BJORN_DIR"
-    echo "   Please install Bjorn first!"
+# Check if ragnar directory exists
+ragnar_DIR="/home/ragnar/ragnar"
+if [ ! -d "$ragnar_DIR" ]; then
+    echo "❌ ragnar directory not found at $ragnar_DIR"
+    echo "   Please install ragnar first!"
     exit 1
 fi
 
-echo "✓ Found Bjorn installation"
+echo "✓ Found ragnar installation"
 echo ""
 
 # Check network connectivity
@@ -67,7 +67,7 @@ echo ""
 
 # Make scripts executable
 echo "Setting up scripts..."
-cd "$BJORN_DIR"
+cd "$ragnar_DIR"
 chmod +x switch_webapp.sh 2>/dev/null
 echo "✓ Scripts configured"
 
@@ -86,34 +86,34 @@ case $switch_choice in
         echo "Switching to modern interface..."
         
         # Check if webapp_modern.py exists
-        if [ ! -f "$BJORN_DIR/webapp_modern.py" ]; then
+        if [ ! -f "$ragnar_DIR/webapp_modern.py" ]; then
             echo "❌ webapp_modern.py not found!"
-            echo "   Please ensure all new files are in the Bjorn directory"
+            echo "   Please ensure all new files are in the ragnar directory"
             exit 1
         fi
         
-        # Update Bjorn.py to use modern webapp
-        if grep -q "from webapp import web_thread" "$BJORN_DIR/Bjorn.py"; then
-            cp "$BJORN_DIR/Bjorn.py" "$BJORN_DIR/Bjorn.py.backup"
-            sed -i 's/from webapp import web_thread/# from webapp import web_thread\nfrom webapp_modern import run_server/' "$BJORN_DIR/Bjorn.py"
-            echo "✓ Updated Bjorn.py"
+        # Update ragnar.py to use modern webapp
+        if grep -q "from webapp import web_thread" "$ragnar_DIR/ragnar.py"; then
+            cp "$ragnar_DIR/ragnar.py" "$ragnar_DIR/ragnar.py.backup"
+            sed -i 's/from webapp import web_thread/# from webapp import web_thread\nfrom webapp_modern import run_server/' "$ragnar_DIR/ragnar.py"
+            echo "✓ Updated ragnar.py"
         else
-            echo "⚠️  Could not automatically update Bjorn.py"
+            echo "⚠️  Could not automatically update ragnar.py"
             echo "   You may need to manually edit it"
         fi
         
-        # Restart Bjorn service
+        # Restart ragnar service
         echo ""
-        echo "Restarting Bjorn service..."
-        systemctl restart bjorn
+        echo "Restarting ragnar service..."
+        systemctl restart ragnar
         sleep 3
         
         # Check if service is running
-        if systemctl is-active --quiet bjorn; then
-            echo "✓ Bjorn service restarted successfully"
+        if systemctl is-active --quiet ragnar; then
+            echo "✓ ragnar service restarted successfully"
         else
             echo "❌ Service restart failed. Checking logs..."
-            journalctl -u bjorn -n 20 --no-pager
+            journalctl -u ragnar -n 20 --no-pager
             exit 1
         fi
         
@@ -138,14 +138,14 @@ case $switch_choice in
         echo "To switch back to old interface:"
         echo "  ./switch_webapp.sh"
         echo ""
-        echo "Enjoy your modernized Bjorn! 🚀"
+        echo "Enjoy your modernized ragnar! 🚀"
         ;;
     2)
         echo ""
         echo "Installation complete!"
         echo ""
         echo "To switch to modern interface later, run:"
-        echo "  cd $BJORN_DIR"
+        echo "  cd $ragnar_DIR"
         echo "  ./switch_webapp.sh"
         echo ""
         ;;
@@ -155,4 +155,4 @@ case $switch_choice in
 esac
 
 echo ""
-echo "Installation log saved to: /var/log/bjorn_modern_install.log"
+echo "Installation log saved to: /var/log/ragnar_modern_install.log"

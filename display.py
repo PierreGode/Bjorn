@@ -34,7 +34,7 @@ class Display:
         """Initialize the display and start the main image and shared data update threads."""
         self.shared_data = shared_data
         self.config = self.shared_data.config
-        self.shared_data.bjornstatustext2 = "Awakening..."
+        self.shared_data.ragnarstatustext2 = "Awakening..."
         self.commentaire_ia = Commentaireia()
         self.semaphore = threading.Semaphore(10)
         self.screen_reversed = self.shared_data.screen_reversed
@@ -206,7 +206,7 @@ class Display:
                 
                 # Update Wi-Fi/AP status text for display
                 wifi_status_text = self.get_wifi_status_text()
-                self.shared_data.bjornstatustext2 = wifi_status_text
+                self.shared_data.ragnarstatustext2 = wifi_status_text
                 
                 self.get_open_files()
 
@@ -216,11 +216,11 @@ class Display:
                 logger.error(f"Error updating shared data: {e}")
 
     def display_comment(self, status):
-        """Display the comment based on the status of the BjornOrch."""
+        """Display the comment based on the status of the ragnarorch."""
         comment = self.commentaire_ia.get_commentaire(status)
         if comment:
             self.shared_data.bjornsay = comment
-            self.shared_data.bjornstatustext = self.shared_data.bjornorch_status
+            self.shared_data.ragnarstatustext = self.shared_data.ragnarorch_status
         else:
             pass
 
@@ -274,11 +274,11 @@ class Display:
         """Get the number of clients connected to AP mode."""
         try:
             # Try to get from WiFi manager first
-            if (hasattr(self.shared_data, 'bjorn_instance') and 
-                self.shared_data.bjorn_instance and 
-                hasattr(self.shared_data.bjorn_instance, 'wifi_manager')):
+            if (hasattr(self.shared_data, 'ragnar_instance') and 
+                self.shared_data.ragnar_instance and 
+                hasattr(self.shared_data.ragnar_instance, 'wifi_manager')):
                 
-                wifi_mgr = self.shared_data.bjorn_instance.wifi_manager
+                wifi_mgr = self.shared_data.ragnar_instance.wifi_manager
                 if hasattr(wifi_mgr, 'ap_clients_count'):
                     return wifi_mgr.ap_clients_count
             
@@ -298,11 +298,11 @@ class Display:
         """Get descriptive text for current Wi-Fi status."""
         try:
             # Try to get status from WiFi manager first (more accurate)
-            if (hasattr(self.shared_data, 'bjorn_instance') and 
-                self.shared_data.bjorn_instance and 
-                hasattr(self.shared_data.bjorn_instance, 'wifi_manager')):
+            if (hasattr(self.shared_data, 'ragnar_instance') and 
+                self.shared_data.ragnar_instance and 
+                hasattr(self.shared_data.ragnar_instance, 'wifi_manager')):
                 
-                wifi_mgr = self.shared_data.bjorn_instance.wifi_manager
+                wifi_mgr = self.shared_data.ragnar_instance.wifi_manager
                 
                 # Check AP mode status first
                 if hasattr(wifi_mgr, 'ap_mode_active') and wifi_mgr.ap_mode_active:
@@ -361,7 +361,7 @@ class Display:
             return "WiFi: Unknown"
 
     def is_manual_mode(self):
-        """Check if the BjornOrch is in manual mode."""
+        """Check if the ragnarorch is in manual mode."""
         return self.shared_data.manual_mode
 
     def is_interface_connected(self, interface):
@@ -396,7 +396,7 @@ class Display:
         while not self.shared_data.display_should_exit:
             try:
                 self.epd_helper.init_partial_update()
-                self.display_comment(self.shared_data.bjornorch_status)
+                self.display_comment(self.shared_data.ragnarorch_status)
                 image = Image.new('1', (self.shared_data.width, self.shared_data.height))
                 draw = ImageDraw.Draw(image)
                 draw.rectangle((0, 0, self.shared_data.width, self.shared_data.height), fill=255)
@@ -438,8 +438,8 @@ class Display:
 
                 self.shared_data.update_bjornstatus()
                 image.paste(self.shared_data.bjornstatusimage, (int(3 * self.scale_factor_x), int(60 * self.scale_factor_y)))
-                draw.text((int(35 * self.scale_factor_x), int(65 * self.scale_factor_y)), self.shared_data.bjornstatustext, font=self.shared_data.font_arial9, fill=0)
-                draw.text((int(35 * self.scale_factor_x), int(75 * self.scale_factor_y)), self.shared_data.bjornstatustext2, font=self.shared_data.font_arial9, fill=0)
+                draw.text((int(35 * self.scale_factor_x), int(65 * self.scale_factor_y)), self.shared_data.ragnarstatustext, font=self.shared_data.font_arial9, fill=0)
+                draw.text((int(35 * self.scale_factor_x), int(75 * self.scale_factor_y)), self.shared_data.ragnarstatustext2, font=self.shared_data.font_arial9, fill=0)
 
                 # Get frise position based on display type
                 frise_x, frise_y = self.get_frise_position()

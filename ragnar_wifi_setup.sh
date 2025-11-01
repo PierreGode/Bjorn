@@ -1,6 +1,6 @@
 #!/bin/bash
-# bjorn_wifi_setup.sh
-# System setup script for Bjorn Wi-Fi management
+# ragnar_wifi_setup.sh
+# System setup script for ragnar Wi-Fi management
 # This script installs and configures the necessary packages for Wi-Fi management
 # Author: GitHub Copilot Assistant
 
@@ -14,7 +14,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Logging
-LOG_FILE="/var/log/bjorn-wifi-setup.log"
+LOG_FILE="/var/log/ragnar-wifi-setup.log"
 
 log() {
     local level="$1"
@@ -109,8 +109,8 @@ configure_services() {
 configure_interface() {
     print_status "Configuring network interface..."
     
-    # Create configuration directory for Bjorn
-    mkdir -p /etc/bjorn/wifi
+    # Create configuration directory for ragnar
+    mkdir -p /etc/ragnar/wifi
     
     # Create a backup of NetworkManager configuration
     if [[ -f /etc/NetworkManager/NetworkManager.conf ]]; then
@@ -141,9 +141,9 @@ setup_forwarding() {
     echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
     
     # Create iptables rules for NAT
-    cat > /etc/bjorn/wifi/iptables-rules.sh << 'EOF'
+    cat > /etc/ragnar/wifi/iptables-rules.sh << 'EOF'
 #!/bin/bash
-# iptables rules for Bjorn Wi-Fi AP mode
+# iptables rules for ragnar Wi-Fi AP mode
 
 # Clear existing rules
 iptables -t nat -F
@@ -168,25 +168,25 @@ iptables -A INPUT -i wlan0 -j ACCEPT
 iptables-save > /etc/iptables/rules.v4
 EOF
     
-    chmod +x /etc/bjorn/wifi/iptables-rules.sh
+    chmod +x /etc/ragnar/wifi/iptables-rules.sh
     
     print_success "IP forwarding and NAT configured"
 }
 
-# Create systemd service for Bjorn Wi-Fi management
+# Create systemd service for ragnar Wi-Fi management
 create_systemd_service() {
     print_status "Creating systemd service..."
     
-    cat > /etc/systemd/system/bjorn-wifi.service << EOF
+    cat > /etc/systemd/system/ragnar-wifi.service << EOF
 [Unit]
-Description=Bjorn Wi-Fi Management Service
+Description=ragnar Wi-Fi Management Service
 After=network.target
 Wants=network.target
 
 [Service]
 Type=forking
-ExecStart=/usr/local/bin/bjorn-wifi-daemon
-ExecStop=/usr/local/bin/bjorn-wifi-stop
+ExecStart=/usr/local/bin/ragnar-wifi-daemon
+ExecStop=/usr/local/bin/ragnar-wifi-stop
 Restart=always
 RestartSec=5
 User=root
@@ -196,10 +196,10 @@ WantedBy=multi-user.target
 EOF
 
     # Create daemon scripts
-    cat > /usr/local/bin/bjorn-wifi-daemon << 'EOF'
+    cat > /usr/local/bin/ragnar-wifi-daemon << 'EOF'
 #!/bin/bash
-# Bjorn Wi-Fi daemon starter
-cd /opt/bjorn
+# ragnar Wi-Fi daemon starter
+cd /opt/ragnar
 python3 -c "
 from wifi_manager import WiFiManager
 from init_shared import shared_data
@@ -223,23 +223,23 @@ while True:
         wifi_manager.stop()
         break
 " &
-echo $! > /var/run/bjorn-wifi.pid
+echo $! > /var/run/ragnar-wifi.pid
 EOF
 
-    cat > /usr/local/bin/bjorn-wifi-stop << 'EOF'
+    cat > /usr/local/bin/ragnar-wifi-stop << 'EOF'
 #!/bin/bash
-# Stop Bjorn Wi-Fi daemon
-if [ -f /var/run/bjorn-wifi.pid ]; then
-    PID=$(cat /var/run/bjorn-wifi.pid)
+# Stop ragnar Wi-Fi daemon
+if [ -f /var/run/ragnar-wifi.pid ]; then
+    PID=$(cat /var/run/ragnar-wifi.pid)
     if kill -0 $PID 2>/dev/null; then
         kill $PID
-        rm -f /var/run/bjorn-wifi.pid
+        rm -f /var/run/ragnar-wifi.pid
     fi
 fi
 EOF
 
-    chmod +x /usr/local/bin/bjorn-wifi-daemon
-    chmod +x /usr/local/bin/bjorn-wifi-stop
+    chmod +x /usr/local/bin/ragnar-wifi-daemon
+    chmod +x /usr/local/bin/ragnar-wifi-stop
     
     systemctl daemon-reload
     
@@ -251,10 +251,10 @@ create_utility_scripts() {
     print_status "Creating utility scripts..."
     
     # Wi-Fi connection helper
-    cat > /usr/local/bin/bjorn-wifi-connect << 'EOF'
+    cat > /usr/local/bin/ragnar-wifi-connect << 'EOF'
 #!/bin/bash
-# Bjorn Wi-Fi connection helper
-# Usage: bjorn-wifi-connect <SSID> [password]
+# ragnar Wi-Fi connection helper
+# Usage: ragnar-wifi-connect <SSID> [password]
 
 if [ $# -lt 1 ]; then
     echo "Usage: $0 <SSID> [password]"
@@ -272,22 +272,22 @@ fi
 EOF
 
     # Wi-Fi AP starter
-    cat > /usr/local/bin/bjorn-wifi-ap << 'EOF'
+    cat > /usr/local/bin/ragnar-wifi-ap << 'EOF'
 #!/bin/bash
-# Bjorn Wi-Fi AP mode helper
-# Usage: bjorn-wifi-ap [start|stop]
+# ragnar Wi-Fi AP mode helper
+# Usage: ragnar-wifi-ap [start|stop]
 
 ACTION="${1:-start}"
 
 case "$ACTION" in
     start)
-        echo "Starting Bjorn Wi-Fi AP mode..."
+        echo "Starting ragnar Wi-Fi AP mode..."
         # This will be handled by the Python Wi-Fi manager
-        systemctl start bjorn-wifi
+        systemctl start ragnar-wifi
         ;;
     stop)
-        echo "Stopping Bjorn Wi-Fi AP mode..."
-        systemctl stop bjorn-wifi
+        echo "Stopping ragnar Wi-Fi AP mode..."
+        systemctl stop ragnar-wifi
         ;;
     *)
         echo "Usage: $0 [start|stop]"
@@ -297,11 +297,11 @@ esac
 EOF
 
     # Wi-Fi status checker
-    cat > /usr/local/bin/bjorn-wifi-status << 'EOF'
+    cat > /usr/local/bin/ragnar-wifi-status << 'EOF'
 #!/bin/bash
-# Bjorn Wi-Fi status checker
+# ragnar Wi-Fi status checker
 
-echo "=== Bjorn Wi-Fi Status ==="
+echo "=== ragnar Wi-Fi Status ==="
 echo
 
 # Check Wi-Fi interface
@@ -325,14 +325,14 @@ pgrep -l hostapd || echo "hostapd not running"
 pgrep -l dnsmasq || echo "dnsmasq not running"
 echo
 
-# Check Bjorn Wi-Fi service
-echo "Bjorn Wi-Fi Service:"
-systemctl status bjorn-wifi --no-pager -l
+# Check ragnar Wi-Fi service
+echo "ragnar Wi-Fi Service:"
+systemctl status ragnar-wifi --no-pager -l
 EOF
 
-    chmod +x /usr/local/bin/bjorn-wifi-connect
-    chmod +x /usr/local/bin/bjorn-wifi-ap
-    chmod +x /usr/local/bin/bjorn-wifi-status
+    chmod +x /usr/local/bin/ragnar-wifi-connect
+    chmod +x /usr/local/bin/ragnar-wifi-ap
+    chmod +x /usr/local/bin/ragnar-wifi-status
     
     print_success "Utility scripts created"
 }
@@ -341,17 +341,17 @@ EOF
 setup_permissions() {
     print_status "Setting up permissions..."
     
-    # Create bjorn group if it doesn't exist
-    getent group bjorn >/dev/null || groupadd bjorn
+    # Create ragnar group if it doesn't exist
+    getent group ragnar >/dev/null || groupadd ragnar
     
-    # Add bjorn user to necessary groups
-    if id "bjorn" &>/dev/null; then
-        usermod -a -G netdev,sudo bjorn
+    # Add ragnar user to necessary groups
+    if id "ragnar" &>/dev/null; then
+        usermod -a -G netdev,sudo ragnar
     fi
     
     # Set permissions on configuration directory
-    chown -R root:bjorn /etc/bjorn
-    chmod -R 750 /etc/bjorn
+    chown -R root:ragnar /etc/ragnar
+    chmod -R 750 /etc/ragnar
     
     print_success "Permissions configured"
 }
@@ -360,30 +360,30 @@ setup_permissions() {
 create_uninstall_script() {
     print_status "Creating uninstall script..."
     
-    cat > /usr/local/bin/bjorn-wifi-uninstall << 'EOF'
+    cat > /usr/local/bin/ragnar-wifi-uninstall << 'EOF'
 #!/bin/bash
-# Bjorn Wi-Fi uninstall script
+# ragnar Wi-Fi uninstall script
 
-echo "Uninstalling Bjorn Wi-Fi management..."
+echo "Uninstalling ragnar Wi-Fi management..."
 
 # Stop and disable service
-systemctl stop bjorn-wifi 2>/dev/null || true
-systemctl disable bjorn-wifi 2>/dev/null || true
+systemctl stop ragnar-wifi 2>/dev/null || true
+systemctl disable ragnar-wifi 2>/dev/null || true
 
 # Remove systemd service
-rm -f /etc/systemd/system/bjorn-wifi.service
+rm -f /etc/systemd/system/ragnar-wifi.service
 systemctl daemon-reload
 
 # Remove scripts
-rm -f /usr/local/bin/bjorn-wifi-daemon
-rm -f /usr/local/bin/bjorn-wifi-stop
-rm -f /usr/local/bin/bjorn-wifi-connect
-rm -f /usr/local/bin/bjorn-wifi-ap
-rm -f /usr/local/bin/bjorn-wifi-status
-rm -f /usr/local/bin/bjorn-wifi-uninstall
+rm -f /usr/local/bin/ragnar-wifi-daemon
+rm -f /usr/local/bin/ragnar-wifi-stop
+rm -f /usr/local/bin/ragnar-wifi-connect
+rm -f /usr/local/bin/ragnar-wifi-ap
+rm -f /usr/local/bin/ragnar-wifi-status
+rm -f /usr/local/bin/ragnar-wifi-uninstall
 
 # Remove configuration directory
-rm -rf /etc/bjorn/wifi
+rm -rf /etc/ragnar/wifi
 
 # Restore NetworkManager configuration if backup exists
 if [ -f /etc/NetworkManager/NetworkManager.conf.backup ]; then
@@ -391,17 +391,17 @@ if [ -f /etc/NetworkManager/NetworkManager.conf.backup ]; then
     systemctl restart NetworkManager
 fi
 
-echo "Bjorn Wi-Fi management uninstalled"
+echo "ragnar Wi-Fi management uninstalled"
 EOF
 
-    chmod +x /usr/local/bin/bjorn-wifi-uninstall
+    chmod +x /usr/local/bin/ragnar-wifi-uninstall
     
     print_success "Uninstall script created"
 }
 
 # Main installation function
 main() {
-    print_status "Starting Bjorn Wi-Fi management setup..."
+    print_status "Starting ragnar Wi-Fi management setup..."
     
     check_root
     update_packages
@@ -414,16 +414,16 @@ main() {
     setup_permissions
     create_uninstall_script
     
-    print_success "Bjorn Wi-Fi management setup completed!"
+    print_success "ragnar Wi-Fi management setup completed!"
     print_status "Available commands:"
-    echo "  - bjorn-wifi-status    : Check Wi-Fi status"
-    echo "  - bjorn-wifi-connect   : Connect to Wi-Fi network"
-    echo "  - bjorn-wifi-ap        : Start/stop AP mode"
-    echo "  - bjorn-wifi-uninstall : Uninstall Wi-Fi management"
+    echo "  - ragnar-wifi-status    : Check Wi-Fi status"
+    echo "  - ragnar-wifi-connect   : Connect to Wi-Fi network"
+    echo "  - ragnar-wifi-ap        : Start/stop AP mode"
+    echo "  - ragnar-wifi-uninstall : Uninstall Wi-Fi management"
     echo ""
     print_status "To enable the Wi-Fi service:"
-    echo "  sudo systemctl enable bjorn-wifi"
-    echo "  sudo systemctl start bjorn-wifi"
+    echo "  sudo systemctl enable ragnar-wifi"
+    echo "  sudo systemctl start ragnar-wifi"
     echo ""
     print_warning "Please reboot the system to ensure all changes take effect."
 }

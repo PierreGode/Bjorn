@@ -1,6 +1,6 @@
 #!/bin/bash
 # install_wifi_management.sh
-# Quick installation script for Bjorn Wi-Fi Management System
+# Quick installation script for ragnar Wi-Fi Management System
 # Author: GitHub Copilot Assistant
 
 set -e
@@ -15,7 +15,7 @@ NC='\033[0m'
 print_header() {
     echo -e "${BLUE}"
     echo "╔════════════════════════════════════════════════════════════════╗"
-    echo "║                    BJORN WI-FI MANAGEMENT                      ║"
+    echo "║                    ragnar WI-FI MANAGEMENT                      ║"
     echo "║                    Installation Script                        ║"
     echo "╚════════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
@@ -97,17 +97,17 @@ setup_permissions() {
     print_status "Setting up permissions..."
     
     # Make scripts executable
-    chmod +x bjorn_wifi_setup.sh
+    chmod +x ragnar_wifi_setup.sh
     chmod +x wifi_manager_service.sh
     
-    # Create bjorn user if it doesn't exist
-    if ! id "bjorn" &>/dev/null; then
-        print_status "Creating bjorn user..."
-        useradd -m -s /bin/bash bjorn
-        usermod -a -G sudo,netdev bjorn
+    # Create ragnar user if it doesn't exist
+    if ! id "ragnar" &>/dev/null; then
+        print_status "Creating ragnar user..."
+        useradd -m -s /bin/bash ragnar
+        usermod -a -G sudo,netdev ragnar
     else
-        print_status "Adding bjorn user to required groups..."
-        usermod -a -G sudo,netdev bjorn
+        print_status "Adding ragnar user to required groups..."
+        usermod -a -G sudo,netdev ragnar
     fi
     
     print_success "Permissions configured"
@@ -131,24 +131,24 @@ create_systemd_service() {
     print_status "Creating systemd service..."
     
     # Get the current directory
-    BJORN_DIR=$(pwd)
+    ragnar_DIR=$(pwd)
     
     # Create systemd service file
-    cat > /etc/systemd/system/bjorn.service << EOF
+    cat > /etc/systemd/system/ragnar.service << EOF
 [Unit]
-Description=Bjorn IoT Security Tool with Wi-Fi Management
+Description=ragnar IoT Security Tool with Wi-Fi Management
 After=network.target
 Wants=network.target
 
 [Service]
 Type=simple
-User=bjorn
-Group=bjorn
-WorkingDirectory=$BJORN_DIR
-ExecStart=/usr/bin/python3 Bjorn.py
+User=ragnar
+Group=ragnar
+WorkingDirectory=$ragnar_DIR
+ExecStart=/usr/bin/python3 ragnar.py
 Restart=always
 RestartSec=10
-Environment=PYTHONPATH=$BJORN_DIR
+Environment=PYTHONPATH=$ragnar_DIR
 
 [Install]
 WantedBy=multi-user.target
@@ -174,8 +174,8 @@ configure_network() {
     systemctl start NetworkManager
     
     # Create configuration directory
-    mkdir -p /etc/bjorn
-    chown bjorn:bjorn /etc/bjorn
+    mkdir -p /etc/ragnar
+    chown ragnar:ragnar /etc/ragnar
     
     print_success "Network services configured"
 }
@@ -197,27 +197,27 @@ setup_web_interface() {
 final_setup() {
     print_status "Performing final setup..."
     
-    # Set ownership of Bjorn directory
-    chown -R bjorn:bjorn .
+    # Set ownership of ragnar directory
+    chown -R ragnar:ragnar .
     
     # Create log directory
     mkdir -p data/logs
-    chown -R bjorn:bjorn data
+    chown -R ragnar:ragnar data
     
-    # Set up sudo permissions for bjorn user to manage networking
-    echo "bjorn ALL=(ALL) NOPASSWD: /usr/bin/systemctl start hostapd" >> /etc/sudoers.d/bjorn-wifi
-    echo "bjorn ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop hostapd" >> /etc/sudoers.d/bjorn-wifi
-    echo "bjorn ALL=(ALL) NOPASSWD: /usr/bin/systemctl start dnsmasq" >> /etc/sudoers.d/bjorn-wifi
-    echo "bjorn ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop dnsmasq" >> /etc/sudoers.d/bjorn-wifi
-    echo "bjorn ALL=(ALL) NOPASSWD: /usr/bin/hostapd" >> /etc/sudoers.d/bjorn-wifi
-    echo "bjorn ALL=(ALL) NOPASSWD: /usr/bin/dnsmasq" >> /etc/sudoers.d/bjorn-wifi
-    echo "bjorn ALL=(ALL) NOPASSWD: /usr/bin/pkill hostapd" >> /etc/sudoers.d/bjorn-wifi
-    echo "bjorn ALL=(ALL) NOPASSWD: /usr/bin/pkill dnsmasq" >> /etc/sudoers.d/bjorn-wifi
-    echo "bjorn ALL=(ALL) NOPASSWD: /usr/bin/ip" >> /etc/sudoers.d/bjorn-wifi
-    echo "bjorn ALL=(ALL) NOPASSWD: /usr/bin/iptables" >> /etc/sudoers.d/bjorn-wifi
-    echo "bjorn ALL=(ALL) NOPASSWD: /usr/bin/nmcli" >> /etc/sudoers.d/bjorn-wifi
+    # Set up sudo permissions for ragnar user to manage networking
+    echo "ragnar ALL=(ALL) NOPASSWD: /usr/bin/systemctl start hostapd" >> /etc/sudoers.d/ragnar-wifi
+    echo "ragnar ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop hostapd" >> /etc/sudoers.d/ragnar-wifi
+    echo "ragnar ALL=(ALL) NOPASSWD: /usr/bin/systemctl start dnsmasq" >> /etc/sudoers.d/ragnar-wifi
+    echo "ragnar ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop dnsmasq" >> /etc/sudoers.d/ragnar-wifi
+    echo "ragnar ALL=(ALL) NOPASSWD: /usr/bin/hostapd" >> /etc/sudoers.d/ragnar-wifi
+    echo "ragnar ALL=(ALL) NOPASSWD: /usr/bin/dnsmasq" >> /etc/sudoers.d/ragnar-wifi
+    echo "ragnar ALL=(ALL) NOPASSWD: /usr/bin/pkill hostapd" >> /etc/sudoers.d/ragnar-wifi
+    echo "ragnar ALL=(ALL) NOPASSWD: /usr/bin/pkill dnsmasq" >> /etc/sudoers.d/ragnar-wifi
+    echo "ragnar ALL=(ALL) NOPASSWD: /usr/bin/ip" >> /etc/sudoers.d/ragnar-wifi
+    echo "ragnar ALL=(ALL) NOPASSWD: /usr/bin/iptables" >> /etc/sudoers.d/ragnar-wifi
+    echo "ragnar ALL=(ALL) NOPASSWD: /usr/bin/nmcli" >> /etc/sudoers.d/ragnar-wifi
     
-    chmod 0440 /etc/sudoers.d/bjorn-wifi
+    chmod 0440 /etc/sudoers.d/ragnar-wifi
     
     print_success "Final setup completed"
 }
@@ -228,22 +228,22 @@ show_completion_message() {
     echo -e "║                     INSTALLATION COMPLETE!                    ║"
     echo -e "╚════════════════════════════════════════════════════════════════╝${NC}"
     echo
-    print_success "Bjorn Wi-Fi Management System has been installed successfully!"
+    print_success "ragnar Wi-Fi Management System has been installed successfully!"
     echo
     echo -e "${BLUE}Next Steps:${NC}"
-    echo "1. Enable and start the Bjorn service:"
-    echo "   sudo systemctl enable bjorn"
-    echo "   sudo systemctl start bjorn"
+    echo "1. Enable and start the ragnar service:"
+    echo "   sudo systemctl enable ragnar"
+    echo "   sudo systemctl start ragnar"
     echo
     echo "2. Check service status:"
-    echo "   sudo systemctl status bjorn"
+    echo "   sudo systemctl status ragnar"
     echo
     echo "3. Access the web interface:"
     echo "   http://localhost:5000 (if connected to Wi-Fi)"
     echo "   http://192.168.4.1:5000 (if in AP mode)"
     echo
     echo "4. Monitor logs:"
-    echo "   sudo journalctl -u bjorn -f"
+    echo "   sudo journalctl -u ragnar -f"
     echo
     echo -e "${BLUE}Wi-Fi Management Features:${NC}"
     echo "• Automatic connection to known networks"
@@ -258,7 +258,7 @@ show_completion_message() {
     echo
     echo -e "${YELLOW}⚠️  Important Notes:${NC}"
     echo "• Reboot recommended to ensure all changes take effect"
-    echo "• Default AP credentials: SSID=Bjorn-Setup, Password=bjornpassword"
+    echo "• Default AP credentials: SSID=ragnar-Setup, Password=ragnarpassword"
     echo "• Change default passwords in web interface for security"
     echo "• Review WIFI_MANAGEMENT_GUIDE.md for detailed documentation"
     echo
@@ -274,7 +274,7 @@ fi
 main() {
     print_header
     
-    print_status "Starting Bjorn Wi-Fi Management installation..."
+    print_status "Starting ragnar Wi-Fi Management installation..."
     
     check_requirements
     install_system_packages

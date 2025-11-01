@@ -146,7 +146,7 @@ function loadDropdown() {
                 <button type="button" onclick="reboot_system()">Reboot</button>
                 <button type="button" onclick="disconnect_wifi()">Disconnect Wi-Fi</button>
                 <button type="button" onclick="shutdown_system()">Shutdown</button>
-                <button type="button" onclick="restart_bjorn_service()">Restart Bjorn Service</button>
+                <button type="button" onclick="restart_Ragnar_service()">Restart Ragnar Service</button>
                 <button type="button" onclick="backup_data()">Backup</button>
                 <button type="button" onclick="restore_data()">Restore</button>
                 <button type="button" onclick="stop_orchestrator()">Stop Orchestrator</button>
@@ -158,25 +158,25 @@ function loadDropdown() {
     document.getElementById('dropdown-container').innerHTML = dropdownContent;
 }
 
-function loadBjornDropdown() {
-    const bjornDropdownContent = `
-        <div class="dropdown bjorn-dropdown">
-            <button type="button" class="toolbar-button" onclick="toggleBjornDropdown()" data-open="false">
-                <img src="/web/images/bjorn_icon.png" alt="Icon_bjorn" style="height: 50px;">
+function loadRagnarDropdown() {
+    const RagnarDropdownContent = `
+        <div class="dropdown Ragnar-dropdown">
+            <button type="button" class="toolbar-button" onclick="toggleRagnarDropdown()" data-open="false">
+                <img src="/web/images/Ragnar_icon.png" alt="Icon_Ragnar" style="height: 50px;">
             </button>
             <div class="dropdown-content">
-                <img id="screenImage_Home"  onclick="window.location.href='/bjorn.html'" src="screen.png" alt="Bjorn" style="width: 100%; min-height: 300px; image-rendering: crisp-edges;">
+                <img id="screenImage_Home"  onclick="window.location.href='/ragnar.html'" src="screen.png" alt="Ragnar" style="width: 100%; min-height: 300px; image-rendering: crisp-edges;">
             </div>
         </div>
     `;
-    document.getElementById('bjorn-dropdown-container').innerHTML = bjornDropdownContent;
-    startLiveview(); // Start live view when Bjorn dropdown is loaded
+    document.getElementById('Ragnar-dropdown-container').innerHTML = RagnarDropdownContent;
+    startLiveview(); // Start live view when Ragnar dropdown is loaded
 }
 
 // Call the function to load the dropdowns when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     loadDropdown();
-    loadBjornDropdown();
+    loadRagnarDropdown();
 });
 
 
@@ -208,8 +208,8 @@ function shutdown_system() {
         .catch(error => alert('Failed to shutdown: ' + error.message));
 }
 
-function restart_bjorn_service() {
-    fetch('/restart_bjorn_service', { method: 'POST' })
+function restart_Ragnar_service() {
+    fetch('/restart_Ragnar_service', { method: 'POST' })
         .then(response => response.json())
         .then(data => alert(data.message))
         .catch(error => alert('Failed to restart service: ' + error.message));
@@ -339,10 +339,10 @@ function stopLiveview() {
     clearInterval(intervalId);
 }
 
-// Dropdown toggle logic for Bjorn
-function toggleBjornDropdown() {
-    const dropdown = document.querySelector('.bjorn-dropdown');
-    const button = document.querySelector('.bjorn-button');
+// Dropdown toggle logic for Ragnar
+function toggleRagnarDropdown() {
+    const dropdown = document.querySelector('.Ragnar-dropdown');
+    const button = document.querySelector('.Ragnar-button');
     const isOpen = button.getAttribute('data-open') === 'true';
 
     if (isOpen) {
@@ -356,20 +356,20 @@ function toggleBjornDropdown() {
     }
 }
 
-function closeBjornDropdownIfOpen(event) {
-    const dropdown = document.querySelector('.bjorn-dropdown');
-    const button = document.querySelector('.bjorn-button');
+function closeRagnarDropdownIfOpen(event) {
+    const dropdown = document.querySelector('.Ragnar-dropdown');
+    const button = document.querySelector('.Ragnar-button');
     const isOpen = button.getAttribute('data-open') === 'true';
 
-    if (!event.target.closest('.bjorn-dropdown') && isOpen) {
+    if (!event.target.closest('.Ragnar-dropdown') && isOpen) {
         dropdown.classList.remove('show');
         button.setAttribute('data-open', 'false');
         stopLiveview(); // Stop image refresh when closing
     }
 }
 
-document.addEventListener('click', closeBjornDropdownIfOpen);
-document.addEventListener('touchstart', closeBjornDropdownIfOpen);
+document.addEventListener('click', closeRagnarDropdownIfOpen);
+document.addEventListener('touchstart', closeRagnarDropdownIfOpen);
 
 // Existing logic for Actions dropdown
 function toggleDropdown() {

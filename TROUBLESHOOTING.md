@@ -17,7 +17,7 @@
 - **Problem**: `OSError: [Errno 24] Too many open files`
 - **Status**: Partially resolved with system limits configuration.
 - **Workaround**: Implemented file descriptor limits increase.
-- **Monitoring**: Check open files with `lsof -p $(pgrep -f Bjorn.py) | wc -l`
+- **Monitoring**: Check open files with `lsof -p $(pgrep -f ragnar.py) | wc -l`
 - At the moment the logs show periodically this information as (FD : XXX)
 
 ## 🛠️ Troubleshooting Steps
@@ -25,18 +25,18 @@
 ### Service Issues
 
 ```bash
-#See bjorn journalctl service
-journalctl -fu bjorn.service
+#See ragnar journalctl service
+journalctl -fu ragnar.service
 
 # Check service status
-sudo systemctl status bjorn.service
+sudo systemctl status ragnar.service
 
 # View detailed logs
-sudo journalctl -u bjorn.service -f
+sudo journalctl -u ragnar.service -f
 
 or
 
-sudo tail -f /home/bjorn/Bjorn/data/logs/*
+sudo tail -f /home/ragnar/ragnar/data/logs/*
 
 
 # Check port 8000 usage
@@ -50,7 +50,7 @@ sudo lsof -i :8000
 ls /dev/spi*
 
 # Check user permissions
-sudo usermod -a -G spi,gpio bjorn
+sudo usermod -a -G spi,gpio ragnar
 ```
 
 ### Network Issues
@@ -67,14 +67,14 @@ ip link show usb0
 
 ```bash
 # Fix ownership
-sudo chown -R bjorn:bjorn /home/bjorn/Bjorn
+sudo chown -R ragnar:ragnar /home/ragnar/ragnar
 
 # Fix permissions
-sudo chmod -R 755 /home/bjorn/Bjorn
+sudo chmod -R 755 /home/ragnar/ragnar
 ```
 
 ---
 
 ## 📜 License
 
-2024 - Bjorn is distributed under the MIT License. For more details, please refer to the [LICENSE](LICENSE) file included in this repository.
+2024 - ragnar is distributed under the MIT License. For more details, please refer to the [LICENSE](LICENSE) file included in this repository.

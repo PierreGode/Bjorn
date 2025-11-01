@@ -1,4 +1,4 @@
-# 🎉 BJORN WEB INTERFACE MODERNIZATION - COMPLETE!
+# 🎉 ragnar WEB INTERFACE MODERNIZATION - COMPLETE!
 
 ## 📋 Summary of Changes
 
@@ -20,7 +20,7 @@
 - Mobile-friendly navigation
 - Single-page application architecture
 
-#### 3. **Real-time JavaScript Client** (`web/scripts/bjorn_modern.js`)
+#### 3. **Real-time JavaScript Client** (`web/scripts/ragnar_modern.js`)
 - WebSocket connection management
 - Automatic reconnection logic
 - Real-time dashboard updates
@@ -39,7 +39,7 @@
 - Added Flask-SocketIO >=5.3.0
 - Added Flask-CORS >=4.0.0
 - Updated `requirements.txt`
-- Updated `install_bjorn.sh`
+- Updated `install_ragnar.sh`
 
 #### 6. **Documentation**
 - `MODERN_WEBAPP_GUIDE.md` - Complete usage guide
@@ -69,7 +69,7 @@
 ✅ **Glass Effects** - Modern UI trend  
 
 ### API Endpoints
-✅ `GET /api/status` - Live Bjorn status  
+✅ `GET /api/status` - Live ragnar status  
 ✅ `GET /api/config` - Configuration data  
 ✅ `POST /api/config` - Update configuration  
 ✅ `GET /api/network` - Network scan results  
@@ -118,33 +118,33 @@
 ## 📁 New Files Created
 
 ```
-bjorn/
+ragnar/
 ├── webapp_modern.py              # New Flask backend
 ├── MODERN_WEBAPP_GUIDE.md        # Usage documentation
 ├── switch_webapp.sh              # Webapp switcher script
 └── web/
     ├── index_modern.html         # New modern dashboard
     └── scripts/
-        └── bjorn_modern.js       # New JavaScript client
+        └── ragnar_modern.js       # New JavaScript client
 ```
 
 ## 📝 Modified Files
 
 ```
-bjorn/
+ragnar/
 ├── utils.py                      # Added new utility methods
 ├── requirements.txt              # Added Flask dependencies
-├── install_bjorn.sh              # Added Flask installation
+├── install_ragnar.sh              # Added Flask installation
 └── shared.py                     # Fixed EPD display issues
 ```
 
 ## 🔧 Installation Instructions
 
-### For Existing Bjorn Users
+### For Existing ragnar Users
 
 ```bash
-# 1. Navigate to Bjorn directory
-cd /home/bjorn/Bjorn
+# 1. Navigate to ragnar directory
+cd /home/ragnar/ragnar
 
 # 2. Pull latest changes (if using git)
 git pull
@@ -160,14 +160,14 @@ chmod +x switch_webapp.sh
 # Select option 1
 
 # 6. Service will auto-restart, or manually restart
-sudo systemctl restart bjorn
+sudo systemctl restart ragnar
 ```
 
 ### For Fresh Installations
 
 Simply run the updated install script:
 ```bash
-sudo bash install_bjorn.sh
+sudo bash install_ragnar.sh
 ```
 
 The modern interface will be installed automatically!
@@ -178,7 +178,7 @@ Default URL: `http://[your-pi-ip]:8000`
 
 Examples:
 - `http://192.168.1.100:8000`
-- `http://bjorn.local:8000`
+- `http://ragnar.local:8000`
 
 ## 🎯 Usage
 
@@ -217,10 +217,10 @@ Examples:
 
 ```bash
 # Check if service is running
-sudo systemctl status bjorn
+sudo systemctl status ragnar
 
 # Check logs
-sudo journalctl -u bjorn -f
+sudo journalctl -u ragnar -f
 
 # Verify port 8000 is listening
 sudo netstat -tlnp | grep 8000
@@ -246,7 +246,7 @@ sudo ufw allow 8000
 ./switch_webapp.sh
 
 # Or manually restart
-sudo systemctl restart bjorn
+sudo systemctl restart ragnar
 
 # Clear browser cache
 # Ctrl+Shift+R (hard refresh)
@@ -314,13 +314,13 @@ Built using:
 
 ## 📜 License
 
-Same as Bjorn project
+Same as ragnar project
 
 ---
 
 ## ✨ Summary
 
-You now have a **modern, fast, beautiful web interface** for Bjorn that:
+You now have a **modern, fast, beautiful web interface** for ragnar that:
 - Loads **10x faster**
 - Updates in **real-time**
 - Works on **all devices**
@@ -330,4 +330,4 @@ You now have a **modern, fast, beautiful web interface** for Bjorn that:
 
 **The old interface was painful. The new interface is a joy to use!** 🎉
 
-Enjoy your modernized Bjorn! 🚀
+Enjoy your modernized ragnar! 🚀

@@ -1,4 +1,4 @@
-# 🖲️ Bjorn Development
+# 🖲️ ragnar Development
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/c5eb4cc1-0c3d-497d-9422-1614651a84ab" alt="thumbnail_IMG_0546" width="98">
@@ -16,8 +16,8 @@
   - [Actions](#-actions)
   - [Data Structure](#-data-structure)
 - [Detailed Project Description](#-detailed-project-description)
-  - [Behaviour of Bjorn](#-behavior-of-bjorn)
-- [Running Bjorn](#-running-bjorn)
+  - [Behaviour of ragnar](#-behavior-of-ragnar)
+- [Running ragnar](#-running-ragnar)
   - [Manual Start](#-manual-start)
   - [Service Control](#-service-control)
   - [Fresh Start](#-fresh-start)
@@ -39,7 +39,7 @@
 
 - **Portability**: Self-contained and portable device, ideal for penetration testing.
 - **Modularity**: Extensible architecture allowing  addition of new actions.
-- **Visual Interface**: The e-Paper HAT provides a visual interface for monitoring the ongoing actions, displaying results or stats, and interacting with Bjorn .
+- **Visual Interface**: The e-Paper HAT provides a visual interface for monitoring the ongoing actions, displaying results or stats, and interacting with ragnar .
 
 ## 📔 Educational Aspects
 
@@ -49,12 +49,12 @@
 ## ✒️ Disclaimer
 
 - **Ethical Use**: This project is strictly for educational purposes.
-- **Responsibility**: The author and contributors disclaim any responsibility for misuse of Bjorn.
+- **Responsibility**: The author and contributors disclaim any responsibility for misuse of ragnar.
 - **Legal Compliance**: Unauthorized use of this tool for malicious activities is prohibited and may be prosecuted by law.
 
 ## 🧩 Extensibility
 
-- **Evolution**: The main purpose of Bjorn is to gain new actions and extend his arsenal over time.
+- **Evolution**: The main purpose of ragnar is to gain new actions and extend his arsenal over time.
 - **Modularity**: Actions are designed to be modular and can be easily extended or modified to add new functionality.
 - **Possibilities**: From capturing pcap files to cracking hashes, man-in-the-middle attacks, and more—the possibilities are endless.
 - **Contribution**: It's up to the user to develop new actions and add them to the project.
@@ -68,8 +68,8 @@
 ### 🗂️ Project Structure
 
 ```
-Bjorn/
-├── Bjorn.py
+ragnar/
+├── ragnar.py
 ├── comment.py
 ├── display.py
 ├── epd_helper.py
@@ -118,17 +118,17 @@ Bjorn/
 
 ### ⚓ Core Files
 
-#### Bjorn.py
+#### ragnar.py
 
 The main entry point for the application. It initializes and runs the main components, including the network scanner, orchestrator, display, and web server.
 
 #### comment.py
 
-Handles generating all the Bjorn comments displayed on the e-Paper HAT based on different themes/actions and statuses.
+Handles generating all the ragnar comments displayed on the e-Paper HAT based on different themes/actions and statuses.
 
 #### display.py
 
-Manages the e-Paper HAT display, updating the screen with Bjorn character, the dialog/comments, and the current information such as network status, vulnerabilities, and various statistics.
+Manages the e-Paper HAT display, updating the screen with ragnar character, the dialog/comments, and the current information such as network status, vulnerabilities, and various statistics.
 
 #### epd_helper.py
 
@@ -140,7 +140,7 @@ Defines a custom logger with specific formatting and handlers for console and fi
 
 #### orchestrator.py
 
-Bjorn’s AI, a heuristic engine that orchestrates the different actions such as network scanning, vulnerability scanning, attacks, and file stealing. It loads and executes actions based on the configuration and sets the status of the actions and Bjorn. 
+ragnar’s AI, a heuristic engine that orchestrates the different actions such as network scanning, vulnerability scanning, attacks, and file stealing. It loads and executes actions based on the configuration and sets the status of the actions and ragnar. 
 
 #### shared.py
 
@@ -156,7 +156,7 @@ Contains utility functions used throughout the project.
 
 #### webapp.py
 
-Sets up and runs a web server to provide a web interface for changing settings, monitoring and interacting with Bjorn.
+Sets up and runs a web server to provide a web interface for changing settings, monitoring and interacting with ragnar.
 
 ### ▶️ Actions
 
@@ -197,8 +197,8 @@ Located at `data/netkb.csv`. Stores information about:
 
 **Preview Example:**
 
-![netkb1](https://github.com/infinition/Bjorn/assets/37984399/f641a565-2765-4280-a7d7-5b25c30dcea5)
-![netkb2](https://github.com/infinition/Bjorn/assets/37984399/f08114a2-d7d1-4f50-b1c4-a9939ba66056)
+![netkb1](https://github.com/infinition/ragnar/assets/37984399/f641a565-2765-4280-a7d7-5b25c30dcea5)
+![netkb2](https://github.com/infinition/ragnar/assets/37984399/f08114a2-d7d1-4f50-b1c4-a9939ba66056)
 
 #### Scan Results
 
@@ -207,7 +207,7 @@ This file is generated everytime the network is scanned. It is used to consolida
 
 **Example:**
 
-![Scan result](https://github.com/infinition/Bjorn/assets/37984399/eb4a313a-f90c-4c43-b699-3678271886dc)
+![Scan result](https://github.com/infinition/ragnar/assets/37984399/eb4a313a-f90c-4c43-b699-3678271886dc)
 
 #### Live Status (livestatus.csv)
 
@@ -220,82 +220,82 @@ Contains real-time information displayed on the e-Paper HAT:
 
 ## 📖 Detailed Project Description
 
-### 👀 Behavior of Bjorn
+### 👀 Behavior of ragnar
 
-Once launched, Bjorn performs the following steps:
+Once launched, ragnar performs the following steps:
 
 1. **Initialization**: Loads configuration, initializes shared data, and sets up necessary components such as the e-Paper HAT display.
 2. **Network Scanning**: Scans the network to identify live hosts and open ports. Updates the network knowledge base (`netkb`) with the results.
 3. **Orchestration**: Orchestrates different actions based on the configuration and network knowledge base. This includes performing vulnerability scanning, attacks, and file stealing.
 4. **Vulnerability Scanning**: Performs vulnerability scans on identified hosts and updates the vulnerability summary.
 5. **Brute-Force Attacks and File Stealing**: Starts brute-force attacks and steals files based on the configuration criteria.
-6. **Display Updates**: Continuously updates the e-Paper HAT display with current information such as network status, vulnerabilities, and various statistics. Bjorn also displays random comments based on different themes and statuses.
-7. **Web Server**: Provides a web interface for monitoring and interacting with Bjorn.
+6. **Display Updates**: Continuously updates the e-Paper HAT display with current information such as network status, vulnerabilities, and various statistics. ragnar also displays random comments based on different themes and statuses.
+7. **Web Server**: Provides a web interface for monitoring and interacting with ragnar.
 
-## ▶️ Running Bjorn
+## ▶️ Running ragnar
 
 ### 📗 Manual Start
 
-To manually start Bjorn (without the service, ensure the service is  stopped « sudo systemctl stop bjorn.service »):
+To manually start ragnar (without the service, ensure the service is  stopped « sudo systemctl stop ragnar.service »):
 
 ```bash
-cd /home/bjorn/Bjorn
+cd /home/ragnar/ragnar
 
-# Run Bjorn
-sudo python Bjorn.py
+# Run ragnar
+sudo python ragnar.py
 ```
 
 ### 🕹️ Service Control
 
-Control the Bjorn service:
+Control the ragnar service:
 
 ```bash
-# Start Bjorn
-sudo systemctl start bjorn.service
+# Start ragnar
+sudo systemctl start ragnar.service
 
-# Stop Bjorn
-sudo systemctl stop bjorn.service
+# Stop ragnar
+sudo systemctl stop ragnar.service
 
 # Check status
-sudo systemctl status bjorn.service
+sudo systemctl status ragnar.service
 
 # View logs
-sudo journalctl -u bjorn.service
+sudo journalctl -u ragnar.service
 ```
 
 ### 🪄 Fresh Start
 
-To reset Bjorn to a clean state:
+To reset ragnar to a clean state:
 
 ```bash
-sudo rm -rf /home/bjorn/Bjorn/config/*.json \
-    /home/bjorn/Bjorn/data/*.csv \
-    /home/bjorn/Bjorn/data/*.log \
-    /home/bjorn/Bjorn/data/output/data_stolen/* \
-    /home/bjorn/Bjorn/data/output/crackedpwd/* \
-    /home/bjorn/Bjorn/config/* \
-    /home/bjorn/Bjorn/data/output/scan_results/* \
-    /home/bjorn/Bjorn/__pycache__ \
-    /home/bjorn/Bjorn/config/__pycache__ \
-    /home/bjorn/Bjorn/data/__pycache__ \
-    /home/bjorn/Bjorn/actions/__pycache__ \
-    /home/bjorn/Bjorn/resources/__pycache__ \
-    /home/bjorn/Bjorn/web/__pycache__ \
-    /home/bjorn/Bjorn/*.log \
-    /home/bjorn/Bjorn/resources/waveshare_epd/__pycache__ \
-    /home/bjorn/Bjorn/data/logs/* \
-    /home/bjorn/Bjorn/data/output/vulnerabilities/* \
-    /home/bjorn/Bjorn/data/logs/*
+sudo rm -rf /home/ragnar/ragnar/config/*.json \
+    /home/ragnar/ragnar/data/*.csv \
+    /home/ragnar/ragnar/data/*.log \
+    /home/ragnar/ragnar/data/output/data_stolen/* \
+    /home/ragnar/ragnar/data/output/crackedpwd/* \
+    /home/ragnar/ragnar/config/* \
+    /home/ragnar/ragnar/data/output/scan_results/* \
+    /home/ragnar/ragnar/__pycache__ \
+    /home/ragnar/ragnar/config/__pycache__ \
+    /home/ragnar/ragnar/data/__pycache__ \
+    /home/ragnar/ragnar/actions/__pycache__ \
+    /home/ragnar/ragnar/resources/__pycache__ \
+    /home/ragnar/ragnar/web/__pycache__ \
+    /home/ragnar/ragnar/*.log \
+    /home/ragnar/ragnar/resources/waveshare_epd/__pycache__ \
+    /home/ragnar/ragnar/data/logs/* \
+    /home/ragnar/ragnar/data/output/vulnerabilities/* \
+    /home/ragnar/ragnar/data/logs/*
 
 ```
 
-Everything will be recreated automatically at the next launch of Bjorn.
+Everything will be recreated automatically at the next launch of ragnar.
 
 ## ❇️ Important Configuration Files
 
 ### 🔗 Shared Configuration (`shared_config.json`)
 
-Defines various settings for Bjorn, including:
+Defines various settings for ragnar, including:
 
 - Boolean settings (`manual_mode`, `websrv`, `debug_mode`, etc.).
 - Time intervals and delays.
@@ -305,7 +305,7 @@ These settings are accessible on the webpage.
 
 ### 🛠️ Actions Configuration (`actions.json`)
 
-Lists the actions to be performed by Bjorn, including (dynamically generated with the content of the folder):
+Lists the actions to be performed by ragnar, including (dynamically generated with the content of the folder):
 
 - Module and class definitions.
 - Port assignments.
@@ -321,7 +321,7 @@ For other versions:
 - As I don't have the v1 and v3 to validate my algorithm, I just hope it will work properly.
 
 ### 🍾 Ghosting Removed!
-In my journey to make Bjorn work with the different screen versions, I struggled, hacking several parameters and found out that it was possible to remove the ghosting of screens! I let you see this, I think this method will be very useful for all other projects with the e-paper screen!
+In my journey to make ragnar work with the different screen versions, I struggled, hacking several parameters and found out that it was possible to remove the ghosting of screens! I let you see this, I think this method will be very useful for all other projects with the e-paper screen!
 
 ## ✍️ Development Guidelines
 
@@ -370,4 +370,4 @@ In my journey to make Bjorn work with the different screen versions, I struggled
 
 ## 📜 License
 
-2024 - Bjorn is distributed under the MIT License. For more details, please refer to the [LICENSE](LICENSE) file included in this repository.
+2024 - ragnar is distributed under the MIT License. For more details, please refer to the [LICENSE](LICENSE) file included in this repository.

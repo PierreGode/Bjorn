@@ -4,7 +4,7 @@ Take Note About This... **Take Note...**
 
 ## 🤝 Our Commitment
 
-We are committed to fostering an open and welcoming environment for all contributors. As such, everyone who participates in **Bjorn** is expected to adhere to the following code of conduct.
+We are committed to fostering an open and welcoming environment for all contributors. As such, everyone who participates in **ragnar** is expected to adhere to the following code of conduct.
 
 ## 🌟 Expected Behavior
 
@@ -23,7 +23,7 @@ We are committed to fostering an open and welcoming environment for all contribu
 
 ## 📢 Reporting Misconduct
 
-If you encounter any behavior that violates this code of conduct, please report it by contacting [bjorn-cyberviking@outlook.com](mailto:bjorn-cyberviking@outlook.com). All complaints will be reviewed and handled appropriately.
+If you encounter any behavior that violates this code of conduct, please report it by contacting [ragnar-cyberviking@outlook.com](mailto:ragnar-cyberviking@outlook.com). All complaints will be reviewed and handled appropriately.
 
 ## ⚖️ Enforcement
 
@@ -37,4 +37,4 @@ This code of conduct is adapted from the [Contributor Covenant, version 2.0](htt
 
 ## 📜 License
 
-2024 - Bjorn is distributed under the MIT License. For more details, please refer to the [LICENSE](LICENSE) file included in this repository.
+2024 - ragnar is distributed under the MIT License. For more details, please refer to the [LICENSE](LICENSE) file included in this repository.

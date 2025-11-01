@@ -31,7 +31,7 @@ The "Start AP Mode" button has been added to the **Config tab toolbar**, positio
     ↓
 [API Call to Enable Smart AP] → [Button Shows Loading State]
     ↓
-[Success] → [Status Bar: "AP Mode Active: Bjorn | 180s timeout"]
+[Success] → [Status Bar: "AP Mode Active: ragnar | 180s timeout"]
     ↓
 [Auto-hide after 10 seconds]
 ```
@@ -44,7 +44,7 @@ Start AP Mode?
 
 This will:
 • Disconnect from current Wi-Fi
-• Start "Bjorn" access point  
+• Start "ragnar" access point  
 • Enable 3-minute smart cycling
 • Allow Wi-Fi configuration via AP
 
@@ -68,8 +68,8 @@ The config page now includes an intelligent Wi-Fi status bar that appears contex
    - "Connecting to network..."
 
 2. **📡 AP Mode Active** (Orange gradient)  
-   - "AP Mode Active: 'Bjorn' | 180s timeout | Smart cycling enabled"
-   - "AP Mode Active: 'Bjorn' | Connect to configure Wi-Fi"
+   - "AP Mode Active: 'ragnar' | 180s timeout | Smart cycling enabled"
+   - "AP Mode Active: 'ragnar' | Connect to configure Wi-Fi"
 
 3. **✅ Connected** (Green gradient)
    - "Connected to: MyNetwork"
@@ -120,7 +120,7 @@ function startAPMode() {
 ```python
 @app.route('/api/wifi/ap/enable', methods=['POST'])
 def enable_wifi_ap_mode():
-    wifi_manager = getattr(shared_data, 'bjorn_instance', None).wifi_manager
+    wifi_manager = getattr(shared_data, 'ragnar_instance', None).wifi_manager
     success = wifi_manager.enable_ap_mode_from_web()
     
     return jsonify({

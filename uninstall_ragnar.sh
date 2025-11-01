@@ -8,9 +8,9 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Logging configuration
-LOG_DIR="/var/log/bjorn_remove"
+LOG_DIR="/var/log/ragnar_remove"
 mkdir -p "$LOG_DIR"
-LOG_FILE="$LOG_DIR/bjorn_remove_$(date +%Y%m%d_%H%M%S).log"
+LOG_FILE="$LOG_DIR/ragnar_remove_$(date +%Y%m%d_%H%M%S).log"
 
 # Logging function
 log() {
@@ -47,17 +47,17 @@ fi
 stop_services() {
     log "INFO" "Stopping services..."
     
-    # Kill any running BJORN processes
-    if pgrep -f "python3 /home/bjorn/Bjorn/Bjorn.py" > /dev/null; then
-        log "INFO" "Killing BJORN Python process..."
-        pkill -f "python3 /home/bjorn/Bjorn/Bjorn.py"
+    # Kill any running ragnar processes
+    if pgrep -f "python3 /home/ragnar/ragnar/ragnar.py" > /dev/null; then
+        log "INFO" "Killing ragnar Python process..."
+        pkill -f "python3 /home/ragnar/ragnar/ragnar.py"
     fi
 
-    # Stop and disable bjorn service
-    if systemctl is-active --quiet "bjorn"; then
-        log "INFO" "Stopping bjorn service..."
-        systemctl stop bjorn
-        systemctl disable bjorn
+    # Stop and disable ragnar service
+    if systemctl is-active --quiet "ragnar"; then
+        log "INFO" "Stopping ragnar service..."
+        systemctl stop ragnar
+        systemctl disable ragnar
     fi
 
     # Stop and disable usb-gadget service
@@ -79,7 +79,7 @@ stop_services() {
 # Function to remove service files
 remove_service_files() {
     log "INFO" "Removing service files..."
-    rm -f /etc/systemd/system/bjorn.service
+    rm -f /etc/systemd/system/ragnar.service
     rm -f /etc/systemd/system/usb-gadget.service
     rm -f /usr/local/bin/usb-gadget.sh
     systemctl daemon-reload
@@ -130,29 +130,29 @@ reset_system_limits() {
     log "SUCCESS" "System limits reset"
 }
 
-# Function to remove BJORN files
-remove_bjorn_files() {
-    log "INFO" "Removing BJORN files..."
-    if [ -d "/home/bjorn/Bjorn" ]; then
-        rm -rf /home/bjorn/Bjorn
-        log "SUCCESS" "BJORN directory removed"
+# Function to remove ragnar files
+remove_ragnar_files() {
+    log "INFO" "Removing ragnar files..."
+    if [ -d "/home/ragnar/ragnar" ]; then
+        rm -rf /home/ragnar/ragnar
+        log "SUCCESS" "ragnar directory removed"
     else
-        log "INFO" "BJORN directory not found"
+        log "INFO" "ragnar directory not found"
     fi
 }
 
 # Main execution
-echo -e "${BLUE}BJORN Removal Script${NC}"
-echo -e "${YELLOW}This script will remove BJORN while preserving the bjorn user and system packages.${NC}"
+echo -e "${BLUE}ragnar Removal Script${NC}"
+echo -e "${YELLOW}This script will remove ragnar while preserving the ragnar user and system packages.${NC}"
 echo -e "${YELLOW}Each step will ask for confirmation before proceeding.${NC}"
 
 # Step 1: Stop Services
-if confirm "stop all BJORN related services"; then
+if confirm "stop all ragnar related services"; then
     stop_services
 fi
 
 # Step 2: Remove Service Files
-if confirm "remove BJORN service files"; then
+if confirm "remove ragnar service files"; then
     remove_service_files
 fi
 
@@ -166,21 +166,21 @@ if confirm "reset system limits"; then
     reset_system_limits
 fi
 
-# Step 5: Remove BJORN Files
-if confirm "remove BJORN files (keeping bjorn user)"; then
-    remove_bjorn_files
+# Step 5: Remove ragnar Files
+if confirm "remove ragnar files (keeping ragnar user)"; then
+    remove_ragnar_files
 fi
 
 # Final summary
-echo -e "\n${GREEN}BJORN removal completed!${NC}"
+echo -e "\n${GREEN}ragnar removal completed!${NC}"
 echo -e "${BLUE}Summary of actions:${NC}"
 echo "1. Services stopped and disabled"
 echo "2. Service files removed"
 echo "3. USB configuration reset"
 echo "4. System limits reset"
-echo "5. BJORN files removed"
+echo "5. ragnar files removed"
 echo -e "\n${YELLOW}Preserved:${NC}"
-echo "- bjorn user account"
+echo "- ragnar user account"
 echo "- System packages"
 echo "- Python packages"
 echo "- SPI and I2C configurations"

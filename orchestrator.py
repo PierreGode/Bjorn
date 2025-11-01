@@ -98,14 +98,14 @@ class Orchestrator:
                         if self.execute_action(action, ip, ports, row, action_key, current_data):
                             action_executed_status = action_key
                             any_action_executed = True
-                            self.shared_data.bjornorch_status = action_executed_status
+                            self.shared_data.ragnarorch_status = action_executed_status
 
                             for child_action in self.actions:
                                 if child_action.b_parent_action == action_key:
                                     with self.semaphore:
                                         if self.execute_action(child_action, ip, ports, row, child_action.action_name, current_data):
                                             action_executed_status = child_action.action_name
-                                            self.shared_data.bjornorch_status = action_executed_status
+                                            self.shared_data.ragnarorch_status = action_executed_status
                                             break
                             break
 
@@ -118,7 +118,7 @@ class Orchestrator:
                         if self.execute_action(child_action, ip, ports, row, action_key, current_data):
                             action_executed_status = child_action.action_name
                             any_action_executed = True
-                            self.shared_data.bjornorch_status = action_executed_status
+                            self.shared_data.ragnarorch_status = action_executed_status
                             break
 
         return any_action_executed
@@ -164,7 +164,7 @@ class Orchestrator:
 
         try:
             logger.info(f"Executing action {action.action_name} for {ip}:{action.port}")
-            self.shared_data.bjornstatustext2 = ip
+            self.shared_data.ragnarstatustext2 = ip
             result = action.execute(ip, str(action.port), row, action_key)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             if result == 'success':
@@ -246,10 +246,10 @@ class Orchestrator:
     def run(self):
         """Run the orchestrator cycle to execute actions"""
         #Run the scanner a first time to get the initial data
-        self.shared_data.bjornorch_status = "NetworkScanner"
-        self.shared_data.bjornstatustext2 = "First scan..."
+        self.shared_data.ragnarorch_status = "NetworkScanner"
+        self.shared_data.ragnarstatustext2 = "First scan..."
         self.network_scanner.scan()
-        self.shared_data.bjornstatustext2 = ""
+        self.shared_data.ragnarstatustext2 = ""
         while not self.shared_data.orchestrator_should_exit:
             current_data = self.shared_data.read_data()
             any_action_executed = False
@@ -269,14 +269,14 @@ class Orchestrator:
                             if self.execute_action(action, ip, ports, row, action_key, current_data):
                                 action_executed_status = action_key
                                 any_action_executed = True
-                                self.shared_data.bjornorch_status = action_executed_status
+                                self.shared_data.ragnarorch_status = action_executed_status
 
                                 for child_action in self.actions:
                                     if child_action.b_parent_action == action_key:
                                         with self.semaphore:
                                             if self.execute_action(child_action, ip, ports, row, child_action.action_name, current_data):
                                                 action_executed_status = child_action.action_name
-                                                self.shared_data.bjornorch_status = action_executed_status
+                                                self.shared_data.ragnarorch_status = action_executed_status
                                                 break
                                 break
 
@@ -289,17 +289,17 @@ class Orchestrator:
                             if self.execute_action(child_action, ip, ports, row, action_key, current_data):
                                 action_executed_status = child_action.action_name
                                 any_action_executed = True
-                                self.shared_data.bjornorch_status = action_executed_status
+                                self.shared_data.ragnarorch_status = action_executed_status
                                 break
 
             self.shared_data.write_data(current_data)
 
             if not any_action_executed:
-                self.shared_data.bjornorch_status = "IDLE"
-                self.shared_data.bjornstatustext2 = ""
+                self.shared_data.ragnarorch_status = "IDLE"
+                self.shared_data.ragnarstatustext2 = ""
                 logger.info("No available targets. Running network scan...")
                 if self.network_scanner:
-                    self.shared_data.bjornorch_status = "NetworkScanner"
+                    self.shared_data.ragnarorch_status = "NetworkScanner"
                     self.network_scanner.scan()
                      # Relire les données mises à jour après le scan
                     current_data = self.shared_data.read_data()
@@ -364,8 +364,8 @@ class Orchestrator:
                         if self.shared_data.orchestrator_should_exit:
                             break
                         remaining_time = (idle_end_time - datetime.now()).seconds
-                        self.shared_data.bjornorch_status = "IDLE"
-                        self.shared_data.bjornstatustext2 = ""
+                        self.shared_data.ragnarorch_status = "IDLE"
+                        self.shared_data.ragnarstatustext2 = ""
                         sys.stdout.write('\x1b[1A\x1b[2K')
                         logger.warning(f"Scanner did not find any new targets. Next scan in: {remaining_time} seconds")
                         time.sleep(1)

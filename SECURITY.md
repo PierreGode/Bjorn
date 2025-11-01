@@ -1,6 +1,6 @@
 # 🔒 Security Policy
 
-Security Policy for **Bjorn** repository includes all required compliance matrix and artifact mapping.
+Security Policy for **ragnar** repository includes all required compliance matrix and artifact mapping.
 
 ## 🧮 Supported Versions
 
@@ -27,7 +27,7 @@ If you discover a security vulnerability within this project, please follow thes
 
 1. **Do not create a public issue.** Instead, contact us directly to responsibly disclose the vulnerability.
 
-2. **Email** [bjorn-cyberviking@outlook.com](mailto:bjorn-cyberviking@outlook.com) with the following information:
+2. **Email** [ragnar-cyberviking@outlook.com](mailto:ragnar-cyberviking@outlook.com) with the following information:
 
    - A description of the vulnerability.
    - Steps to reproduce the issue.
@@ -45,4 +45,4 @@ Thank you for helping us keep this project secure!
 
 ## 📜 License
 
-2024 - Bjorn is distributed under the MIT License. For more details, please refer to the [LICENSE](LICENSE) file included in this repository.
+2024 - ragnar is distributed under the MIT License. For more details, please refer to the [LICENSE](LICENSE) file included in this repository.

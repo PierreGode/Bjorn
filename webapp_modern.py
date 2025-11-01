@@ -1,6 +1,6 @@
 #webapp_modern.py
 """
-Modern Flask-based web application for Bjorn
+Modern Flask-based web application for Ragnar
 Features:
 - Fast Flask backend with proper routing
 - RESTful API endpoints
@@ -40,7 +40,7 @@ logger = Logger(name="webapp_modern.py", level=logging.DEBUG)
 app = Flask(__name__,
             static_folder='web',
             template_folder='web')
-app.config['SECRET_KEY'] = 'bjorn-cyberviking-secret-key'
+app.config['SECRET_KEY'] = 'ragnar-cyberviking-secret-key'
 app.config['JSON_SORT_KEYS'] = False
 
 # Enable CORS
@@ -142,13 +142,13 @@ def serve_static(filename):
 
 @app.route('/api/status')
 def get_status():
-    """Get current Bjorn status"""
+    """Get current Ragnar status"""
     try:
         status_data = {
-            'bjorn_status': safe_str(shared_data.bjornstatustext),
-            'bjorn_status2': safe_str(shared_data.bjornstatustext2),
-            'bjorn_says': safe_str(shared_data.bjornsays),
-            'orchestrator_status': safe_str(shared_data.bjornorch_status),
+            'ragnar_status': safe_str(shared_data.ragnarstatustext),
+            'ragnar_status2': safe_str(shared_data.ragnarstatustext2),
+            'ragnar_says': safe_str(shared_data.ragnarsays),
+            'orchestrator_status': safe_str(shared_data.ragnarorch_status),
             'target_count': safe_int(shared_data.targetnbr),
             'port_count': safe_int(shared_data.portnbr),
             'vulnerability_count': safe_int(shared_data.vulnnbr),
@@ -410,7 +410,7 @@ def perform_update():
             import time
             time.sleep(2)  # Give time for response to be sent
             try:
-                subprocess.run(['sudo', 'systemctl', 'restart', 'bjorn'], check=True)
+                subprocess.run(['sudo', 'systemctl', 'restart', 'ragnar'], check=True)
             except subprocess.CalledProcessError as e:
                 logger.error(f"Failed to restart service: {e}")
         
@@ -465,7 +465,7 @@ def fix_git_safe_directory():
 
 @app.route('/api/system/restart-service', methods=['POST'])
 def restart_service():
-    """Restart the Bjorn service"""
+    """Restart the Ragnar service"""
     try:
         import subprocess
         
@@ -474,7 +474,7 @@ def restart_service():
             import time
             time.sleep(2)  # Give time for response to be sent
             try:
-                subprocess.run(['sudo', 'systemctl', 'restart', 'bjorn'], check=True)
+                subprocess.run(['sudo', 'systemctl', 'restart', 'ragnar'], check=True)
             except subprocess.CalledProcessError as e:
                 logger.error(f"Failed to restart service: {e}")
         
@@ -527,7 +527,7 @@ def reboot_system():
 def get_wifi_status():
     """Get Wi-Fi manager status"""
     try:
-        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        wifi_manager = getattr(shared_data, 'ragnar_instance', None)
         if wifi_manager and hasattr(wifi_manager, 'wifi_manager'):
             status = wifi_manager.wifi_manager.get_status()
             return jsonify(status)
@@ -546,7 +546,7 @@ def get_wifi_status():
 def scan_wifi_networks():
     """Scan for available Wi-Fi networks"""
     try:
-        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        wifi_manager = getattr(shared_data, 'ragnar_instance', None)
         if wifi_manager and hasattr(wifi_manager, 'wifi_manager'):
             networks = wifi_manager.wifi_manager.scan_networks()
             return jsonify({'networks': networks})
@@ -560,7 +560,7 @@ def scan_wifi_networks():
 def get_wifi_networks():
     """Get available and known Wi-Fi networks"""
     try:
-        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        wifi_manager = getattr(shared_data, 'ragnar_instance', None)
         if wifi_manager and hasattr(wifi_manager, 'wifi_manager'):
             available = wifi_manager.wifi_manager.get_available_networks()
             known = wifi_manager.wifi_manager.get_known_networks()
@@ -602,7 +602,7 @@ def connect_wifi():
         priority = data.get('priority', 1)
         save_network = data.get('save', True)
         
-        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        wifi_manager = getattr(shared_data, 'ragnar_instance', None)
         if not wifi_manager or not hasattr(wifi_manager, 'wifi_manager'):
             return jsonify({'success': False, 'error': 'Wi-Fi manager not available'}), 503
         
@@ -615,7 +615,7 @@ def connect_wifi():
         
         message = 'Connected successfully' if success else 'Connection failed'
         if success and is_ap_client_request():
-            message = 'Connected successfully! Bjorn will now use this network. You can disconnect from this AP.'
+            message = 'Connected successfully! Ragnar will now use this network. You can disconnect from this AP.'
         
         return jsonify({
             'success': success,
@@ -630,7 +630,7 @@ def connect_wifi():
 def disconnect_wifi():
     """Disconnect from current Wi-Fi network"""
     try:
-        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        wifi_manager = getattr(shared_data, 'ragnar_instance', None)
         if not wifi_manager or not hasattr(wifi_manager, 'wifi_manager'):
             return jsonify({'error': 'Wi-Fi manager not available'}), 503
         
@@ -656,7 +656,7 @@ def forget_wifi_network():
         
         ssid = data['ssid']
         
-        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        wifi_manager = getattr(shared_data, 'ragnar_instance', None)
         if not wifi_manager or not hasattr(wifi_manager, 'wifi_manager'):
             return jsonify({'error': 'Wi-Fi manager not available'}), 503
         
@@ -675,7 +675,7 @@ def forget_wifi_network():
 def enable_wifi_ap_mode():
     """Enable Wi-Fi Access Point mode with smart cycling"""
     try:
-        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        wifi_manager = getattr(shared_data, 'ragnar_instance', None)
         if not wifi_manager or not hasattr(wifi_manager, 'wifi_manager'):
             return jsonify({'error': 'Wi-Fi manager not available'}), 503
         
@@ -702,7 +702,7 @@ def enable_wifi_ap_mode():
 def start_wifi_ap():
     """Start Wi-Fi Access Point mode"""
     try:
-        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        wifi_manager = getattr(shared_data, 'ragnar_instance', None)
         if not wifi_manager or not hasattr(wifi_manager, 'wifi_manager'):
             return jsonify({'error': 'Wi-Fi manager not available'}), 503
         
@@ -721,7 +721,7 @@ def start_wifi_ap():
 def stop_wifi_ap():
     """Stop Wi-Fi Access Point mode"""
     try:
-        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        wifi_manager = getattr(shared_data, 'ragnar_instance', None)
         if not wifi_manager or not hasattr(wifi_manager, 'wifi_manager'):
             return jsonify({'error': 'Wi-Fi manager not available'}), 503
         
@@ -740,7 +740,7 @@ def stop_wifi_ap():
 def reconnect_wifi():
     """Force Wi-Fi reconnection attempt"""
     try:
-        wifi_manager = getattr(shared_data, 'bjorn_instance', None)
+        wifi_manager = getattr(shared_data, 'ragnar_instance', None)
         if not wifi_manager or not hasattr(wifi_manager, 'wifi_manager'):
             return jsonify({'error': 'Wi-Fi manager not available'}), 503
         
@@ -786,8 +786,8 @@ def get_epaper_display():
                     'timestamp': int(os.path.getctime(display_image_path)),
                     'width': img.width,
                     'height': img.height,
-                    'status_text': safe_str(shared_data.bjornstatustext),
-                    'status_text2': safe_str(shared_data.bjornstatustext2)
+                    'status_text': safe_str(shared_data.ragnarstatustext),
+                    'status_text2': safe_str(shared_data.ragnarstatustext2)
                 })
         
         # If no image found, return status only
@@ -795,8 +795,8 @@ def get_epaper_display():
             'image': None,
             'message': 'No e-paper display image available',
             'timestamp': int(time.time()),
-            'status_text': safe_str(shared_data.bjornstatustext),
-            'status_text2': safe_str(shared_data.bjornstatustext2)
+            'status_text': safe_str(shared_data.ragnarstatustext),
+            'status_text2': safe_str(shared_data.ragnarstatustext2)
         })
         
     except Exception as e:
@@ -1008,10 +1008,10 @@ def handle_loot_request():
 def get_current_status():
     """Get current status data"""
     return {
-        'bjorn_status': safe_str(shared_data.bjornstatustext),
-        'bjorn_status2': safe_str(shared_data.bjornstatustext2),
-        'bjorn_says': safe_str(shared_data.bjornsays),
-        'orchestrator_status': safe_str(shared_data.bjornorch_status),
+        'bjorn_status': safe_str(shared_data.ragnarstatustext),
+        'bjorn_status2': safe_str(shared_data.ragnarstatustext2),
+        'bjorn_says': safe_str(shared_data.ragnarsays),
+        'orchestrator_status': safe_str(shared_data.ragnarorch_status),
         'target_count': safe_int(shared_data.targetnbr),
         'port_count': safe_int(shared_data.portnbr),
         'vulnerability_count': safe_int(shared_data.vulnnbr),
@@ -1071,7 +1071,7 @@ def get_manual_mode_status():
     try:
         return jsonify({
             'manual_mode': shared_data.config.get('manual_mode', False),
-            'orchestrator_status': shared_data.bjornorch_status
+            'orchestrator_status': shared_data.ragnarorch_status
         })
     except Exception as e:
         logger.error(f"Error getting manual mode status: {e}")

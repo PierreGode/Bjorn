@@ -1,20 +1,20 @@
-# 🎨 Bjorn Modern Web Interface
+# 🎨 ragnar Modern Web Interface
 
 ## Quick Start
 
 ### For New Installations
 
 ```bash
-cd /home/bjorn/Bjorn
-sudo bash install_bjorn.sh
+cd /home/ragnar/ragnar
+sudo bash install_ragnar.sh
 ```
 
 **That's it!** The modern interface is included and automatically configured.
 
-### For Existing Bjorn Installations
+### For Existing ragnar Installations
 
 ```bash
-cd /home/bjorn/Bjorn
+cd /home/ragnar/ragnar
 git pull
 
 # Install Flask (only if not already installed)
@@ -24,7 +24,7 @@ sudo pip3 install --break-system-packages flask flask-socketio flask-cors
 ./switch_webapp.sh
 
 # Restart service
-sudo systemctl restart bjorn
+sudo systemctl restart ragnar
 ```
 
 Access at: `http://[your-pi-ip]:8000`
@@ -45,7 +45,7 @@ Access at: `http://[your-pi-ip]:8000`
 
 ### Frontend
 - `web/index_modern.html` - Modern dashboard interface
-- `web/scripts/bjorn_modern.js` - Real-time client logic
+- `web/scripts/ragnar_modern.js` - Real-time client logic
 
 ### Scripts
 - `install_modern_webapp.sh` - Quick installer
@@ -88,7 +88,7 @@ Access at: `http://[your-pi-ip]:8000`
 ### Option 1: Main Installer (Recommended)
 The modern interface is now included in the main installer:
 ```bash
-sudo bash install_bjorn.sh
+sudo bash install_ragnar.sh
 ```
 
 **Smart Installation:**
@@ -139,10 +139,10 @@ curl -X POST http://localhost:8000/api/config \
 ### Viewing Logs
 ```bash
 # Service logs
-sudo journalctl -u bjorn -f
+sudo journalctl -u ragnar -f
 
 # Just webapp logs
-sudo journalctl -u bjorn -f | grep webapp_modern
+sudo journalctl -u ragnar -f | grep webapp_modern
 ```
 
 ## Troubleshooting
@@ -150,13 +150,13 @@ sudo journalctl -u bjorn -f | grep webapp_modern
 ### Can't Access Interface
 ```bash
 # Check service status
-sudo systemctl status bjorn
+sudo systemctl status ragnar
 
 # Check if port is listening
 sudo netstat -tlnp | grep 8000
 
 # Restart service
-sudo systemctl restart bjorn
+sudo systemctl restart ragnar
 ```
 
 ### WebSocket Not Connecting
@@ -174,14 +174,14 @@ sudo pip3 install --break-system-packages flask-socketio
 Ctrl + Shift + R
 
 # Or clear cache and restart
-sudo systemctl restart bjorn
+sudo systemctl restart ragnar
 ```
 
 ## API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/status` | GET | Current Bjorn status |
+| `/api/status` | GET | Current ragnar status |
 | `/api/config` | GET | Current configuration |
 | `/api/config` | POST | Update configuration |
 | `/api/network` | GET | Network scan results |
@@ -261,14 +261,14 @@ Built with:
 
 For issues:
 1. Check `MODERN_WEBAPP_GUIDE.md`
-2. View logs: `sudo journalctl -u bjorn -f`
+2. View logs: `sudo journalctl -u ragnar -f`
 3. Test API: `curl http://localhost:8000/api/status`
-4. GitHub Issues on main Bjorn repo
+4. GitHub Issues on main ragnar repo
 
 ## License
 
-Same as Bjorn project
+Same as ragnar project
 
 ---
 
-**Enjoy your modernized Bjorn! 🚀**
+**Enjoy your modernized ragnar! 🚀**

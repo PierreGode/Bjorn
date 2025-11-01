@@ -21,7 +21,7 @@ The new system implements a sophisticated cycling pattern:
    - Try to connect to OS autoconnect networks
 
 2. **AP Mode Phase** (3 minutes)
-   - Start AP mode (`Bjorn` network)
+   - Start AP mode (`ragnar` network)
    - Monitor for client connections
    - Display AP status on e-paper
 
@@ -87,7 +87,7 @@ The system can discover and use OS-level autoconnect networks:
     "success": true,
     "message": "Smart AP mode enabled with 3-minute cycling",
     "ap_config": {
-        "ssid": "Bjorn",
+        "ssid": "ragnar",
         "timeout": 180,
         "cycling": true
     }

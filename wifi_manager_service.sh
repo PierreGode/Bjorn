@@ -1,6 +1,6 @@
 #!/bin/bash
 # wifi_manager_service.sh
-# Service management script for Bjorn Wi-Fi functionality
+# Service management script for ragnar Wi-Fi functionality
 # This script provides convenient functions to manage the Wi-Fi services
 # Author: GitHub Copilot Assistant
 
@@ -12,8 +12,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-HOSTAPD_CONFIG="/tmp/bjorn/hostapd.conf"
-DNSMASQ_CONFIG="/tmp/bjorn/dnsmasq.conf"
+HOSTAPD_CONFIG="/tmp/ragnar/hostapd.conf"
+DNSMASQ_CONFIG="/tmp/ragnar/dnsmasq.conf"
 INTERFACE="wlan0"
 AP_IP="192.168.4.1"
 
@@ -296,7 +296,7 @@ show_status() {
 
 # Show help
 show_help() {
-    echo "Bjorn Wi-Fi Manager Service Script"
+    echo "ragnar Wi-Fi Manager Service Script"
     echo "Usage: $0 <command> [options]"
     echo
     echo "Commands:"

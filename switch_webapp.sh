@@ -1,14 +1,14 @@
 #!/bin/bash
-# Switch between old and new Bjorn web interfaces
+# Switch between old and new ragnar web interfaces
 
-BJORN_PY="/home/bjorn/Bjorn/Bjorn.py"
+ragnar_PY="/home/ragnar/ragnar/ragnar.py"
 
 echo "================================"
-echo "Bjorn Web Interface Switcher"
+echo "ragnar Web Interface Switcher"
 echo "================================"
 echo ""
 echo "Current status:"
-if grep -q "from webapp_modern import" "$BJORN_PY" 2>/dev/null; then
+if grep -q "from webapp_modern import" "$ragnar_PY" 2>/dev/null; then
     echo "✓ Using MODERN interface (Flask + Tailwind)"
     CURRENT="modern"
 else
@@ -30,12 +30,12 @@ case $choice in
         else
             echo "Switching to modern interface..."
             # Backup current file
-            cp "$BJORN_PY" "${BJORN_PY}.backup"
+            cp "$ragnar_PY" "${ragnar_PY}.backup"
             # Switch to modern webapp
-            sed -i 's/from webapp import web_thread/from webapp_modern import run_server as web_thread/' "$BJORN_PY"
+            sed -i 's/from webapp import web_thread/from webapp_modern import run_server as web_thread/' "$ragnar_PY"
             echo "✓ Switched to modern interface"
-            echo "Restarting Bjorn service..."
-            sudo systemctl restart bjorn
+            echo "Restarting ragnar service..."
+            sudo systemctl restart ragnar
             echo "✓ Done! Access at http://$(hostname -I | awk '{print $1}'):8000"
         fi
         ;;
@@ -45,12 +45,12 @@ case $choice in
         else
             echo "Switching to old interface..."
             # Backup current file
-            cp "$BJORN_PY" "${BJORN_PY}.backup"
+            cp "$ragnar_PY" "${ragnar_PY}.backup"
             # Switch to old webapp
-            sed -i 's/from webapp_modern import run_server as web_thread/from webapp import web_thread/' "$BJORN_PY"
+            sed -i 's/from webapp_modern import run_server as web_thread/from webapp import web_thread/' "$ragnar_PY"
             echo "✓ Switched to old interface"
-            echo "Restarting Bjorn service..."
-            sudo systemctl restart bjorn
+            echo "Restarting ragnar service..."
+            sudo systemctl restart ragnar
             echo "✓ Done! Access at http://$(hostname -I | awk '{print $1}'):8000"
         fi
         ;;
