@@ -991,7 +991,7 @@ class WiFiManager:
             
             # Create dnsmasq configuration
             self.ap_logger.info("Creating dnsmasq configuration...")
-            if not self._create_dnsmasq_config():
+            if not self._create_dnsmasq_config(dns_enabled=True):
                 self.ap_logger.error("Failed to create dnsmasq configuration")
                 return False
             
@@ -1103,41 +1103,71 @@ rsn_pairwise=CCMP
             self.ap_logger.error(f"Error creating hostapd config: {e}")
             return False
     
-    def _create_dnsmasq_config(self):
+    def _create_dnsmasq_config(self, dns_enabled=True):
         """Create dnsmasq configuration file"""
         try:
             self.ap_logger.debug("Creating dnsmasq configuration file...")
-            config_content = f"""interface={self.ap_interface}
+            
+            if dns_enabled:
+                # Full configuration with DNS for captive portal
+                config_content = f"""# Interface configuration
+interface={self.ap_interface}
+# DHCP range
 dhcp-range=192.168.4.2,192.168.4.20,255.255.255.0,24h
-# Enable DNS for captive portal functionality
-port=53
-# Use alternative DHCP port if needed
+# DHCP authoritative
 dhcp-authoritative
-# Bind only to the AP interface to avoid conflicts
+# Bind to specific interface only
 bind-interfaces
-# Log DHCP activity for debugging
+# Log DHCP activity
 log-dhcp
-# Set gateway to the AP interface IP
+# Gateway option
 dhcp-option=3,{self.ap_ip}
-# Set DNS servers for clients (point to ourselves for captive portal)
+# DNS option (point to ourselves for captive portal)
 dhcp-option=6,{self.ap_ip}
-# Captive portal DNS redirection - redirect all domains to our AP
-address=/#/{self.ap_ip}
-# Allow some specific domains to work normally for connectivity tests
-server=/time.android.com/8.8.8.8
-server=/pool.ntp.org/8.8.8.8
-# Stop reading /etc/resolv.conf for upstream servers
+# Enable DNS on port 53
+port=53
+# Listen only on our AP IP
+listen-address={self.ap_ip}
+# Don't read system files that might conflict
 no-resolv
-# Add upstream servers manually
+no-hosts
+no-poll
+# Captive portal - redirect all domains to AP
+address=/#/{self.ap_ip}
+# But allow some connectivity test domains to work
+server=/connectivitycheck.gstatic.com/8.8.8.8
+server=/www.gstatic.com/8.8.8.8
+server=/clients3.google.com/8.8.8.8
+# Fallback DNS servers
 server=8.8.8.8
 server=8.8.4.4
+"""
+            else:
+                # Minimal configuration - DHCP only, no DNS conflicts
+                config_content = f"""# Interface configuration
+interface={self.ap_interface}
+# DHCP range
+dhcp-range=192.168.4.2,192.168.4.20,255.255.255.0,24h
+# DHCP authoritative
+dhcp-authoritative
+# Bind to specific interface only
+bind-interfaces
+# Log DHCP activity
+log-dhcp
+# Gateway option
+dhcp-option=3,{self.ap_ip}
+# DNS option (use public DNS)
+dhcp-option=6,8.8.8.8,8.8.4.4
+# Disable DNS server to avoid conflicts
+port=0
 """
             
             with open('/tmp/bjorn/dnsmasq.conf', 'w') as f:
                 f.write(config_content)
             
-            self.logger.info("Created dnsmasq configuration with captive portal DNS")
-            self.ap_logger.info("Created dnsmasq configuration at /tmp/bjorn/dnsmasq.conf")
+            config_type = "with captive portal DNS" if dns_enabled else "DHCP-only (no DNS conflicts)"
+            self.logger.info(f"Created dnsmasq configuration {config_type}")
+            self.ap_logger.info(f"Created dnsmasq configuration at /tmp/bjorn/dnsmasq.conf ({config_type})")
             self.ap_logger.debug(f"Dnsmasq config content:\n{config_content}")
             return True
             
@@ -1179,6 +1209,19 @@ server=8.8.4.4
                 self.ap_logger.error(f"Failed to bring interface up: {result.stderr}")
                 return False
             
+            # Wait for interface to be fully ready
+            time.sleep(2)
+            
+            # Verify interface configuration
+            self.ap_logger.debug("Verifying interface configuration...")
+            result = subprocess.run(['ip', 'addr', 'show', self.ap_interface], 
+                         capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                self.ap_logger.debug(f"Interface status:\n{result.stdout}")
+                if self.ap_ip not in result.stdout:
+                    self.ap_logger.error(f"Interface {self.ap_interface} does not have expected IP {self.ap_ip}")
+                    return False
+            
             self.logger.info("Configured AP interface")
             self.ap_logger.info(f"Interface {self.ap_interface} configured successfully with IP {self.ap_ip}")
             return True
@@ -1191,6 +1234,28 @@ server=8.8.4.4
     def _start_ap_services(self):
         """Start hostapd and dnsmasq services"""
         try:
+            # Kill any existing conflicting services first
+            self.ap_logger.info("Cleaning up any conflicting services...")
+            
+            # Stop any system dnsmasq that might conflict
+            try:
+                subprocess.run(['sudo', 'systemctl', 'stop', 'dnsmasq'], 
+                             capture_output=True, check=False)
+                self.ap_logger.debug("Stopped system dnsmasq service")
+            except:
+                pass
+            
+            # Kill any existing dnsmasq processes on our interface
+            try:
+                subprocess.run(['sudo', 'pkill', '-f', f'dnsmasq.*{self.ap_interface}'], 
+                             capture_output=True, check=False)
+                self.ap_logger.debug("Killed existing dnsmasq processes")
+            except:
+                pass
+            
+            # Wait a moment for cleanup
+            time.sleep(1)
+            
             self.ap_logger.info("Starting hostapd service...")
             # Start hostapd
             self.hostapd_process = subprocess.Popen(['sudo', 'hostapd', '/tmp/bjorn/hostapd.conf'],
@@ -1210,8 +1275,8 @@ server=8.8.4.4
             self.ap_logger.info("Hostapd started successfully")
             
             self.ap_logger.info("Starting dnsmasq service...")
-            # Start dnsmasq
-            self.dnsmasq_process = subprocess.Popen(['sudo', 'dnsmasq', '-C', '/tmp/bjorn/dnsmasq.conf', '-d'],
+            # Start dnsmasq with explicit interface binding
+            self.dnsmasq_process = subprocess.Popen(['sudo', 'dnsmasq', '-C', '/tmp/bjorn/dnsmasq.conf', '-d', '--no-daemon'],
                                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
             self.ap_logger.debug(f"Dnsmasq process started with PID: {self.dnsmasq_process.pid}")
@@ -1219,13 +1284,37 @@ server=8.8.4.4
             
             if self.dnsmasq_process.poll() is not None:
                 stdout, stderr = self.dnsmasq_process.communicate()
-                self.logger.error("dnsmasq failed to start")
-                self.ap_logger.error("dnsmasq failed to start")
-                self.ap_logger.error(f"Dnsmasq stdout: {stdout.decode()}")
-                self.ap_logger.error(f"Dnsmasq stderr: {stderr.decode()}")
-                return False
-            
-            self.ap_logger.info("Dnsmasq started successfully")
+                self.logger.warning("dnsmasq failed to start with DNS enabled, trying DHCP-only mode")
+                self.ap_logger.warning("dnsmasq failed to start with DNS enabled")
+                self.ap_logger.warning(f"Dnsmasq stdout: {stdout.decode()}")
+                self.ap_logger.warning(f"Dnsmasq stderr: {stderr.decode()}")
+                
+                # Try fallback mode without DNS
+                self.ap_logger.info("Attempting fallback: DHCP-only mode without DNS")
+                
+                # Create new config without DNS
+                if not self._create_dnsmasq_config(dns_enabled=False):
+                    self.ap_logger.error("Failed to create fallback dnsmasq configuration")
+                    return False
+                
+                # Try starting dnsmasq again with DHCP-only config
+                self.dnsmasq_process = subprocess.Popen(['sudo', 'dnsmasq', '-C', '/tmp/bjorn/dnsmasq.conf', '-d', '--no-daemon'],
+                                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                
+                self.ap_logger.debug(f"Dnsmasq fallback process started with PID: {self.dnsmasq_process.pid}")
+                time.sleep(1)
+                
+                if self.dnsmasq_process.poll() is not None:
+                    stdout, stderr = self.dnsmasq_process.communicate()
+                    self.logger.error("dnsmasq fallback also failed to start")
+                    self.ap_logger.error("dnsmasq fallback (DHCP-only) also failed to start")
+                    self.ap_logger.error(f"Dnsmasq fallback stdout: {stdout.decode()}")
+                    self.ap_logger.error(f"Dnsmasq fallback stderr: {stderr.decode()}")
+                    return False
+                
+                self.ap_logger.info("Dnsmasq started successfully in DHCP-only mode (no captive portal DNS)")
+            else:
+                self.ap_logger.info("Dnsmasq started successfully with full captive portal DNS")
             self.logger.info("AP services started")
             self.ap_logger.info("All AP services started successfully")
             return True
