@@ -200,6 +200,10 @@
                     </select>
                     <button type="button" class="refresh-btn" id="refreshBtn">🔄</button>
                 </div>
+                <div class="manual-entry" style="margin-top: 10px;">
+                    <label for="manualSSID" style="font-size: 14px; color: #666;">Or enter network name manually:</label>
+                    <input type="text" id="manualSSID" placeholder="Type WiFi network name (SSID)" style="margin-top: 5px; width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px;">
+                </div>
             </div>
 
             <div class="form-group">
@@ -218,12 +222,27 @@
 
     <script>
         const networkSelect = document.getElementById('networkSelect');
+        const manualSSID = document.getElementById('manualSSID');
         const passwordInput = document.getElementById('password');
         const connectBtn = document.getElementById('connectBtn');
         const refreshBtn = document.getElementById('refreshBtn');
         const togglePassword = document.getElementById('togglePassword');
         const status = document.getElementById('status');
         const form = document.getElementById('wifiForm');
+
+        // Clear manual input when selecting from dropdown
+        networkSelect.addEventListener('change', () => {
+            if (networkSelect.value) {
+                manualSSID.value = '';
+            }
+        });
+
+        // Clear dropdown when typing manually
+        manualSSID.addEventListener('input', () => {
+            if (manualSSID.value) {
+                networkSelect.value = '';
+            }
+        });
 
         // Toggle password visibility
         togglePassword.addEventListener('click', () => {
@@ -250,40 +269,58 @@
                 refreshBtn.disabled = true;
                 refreshBtn.textContent = '⏳';
                 
-                // Show warning about temporary disconnection
-                showStatus('Scanning for networks... You may be temporarily disconnected.', 'info');
+                showStatus('Scanning for networks... This may take a moment.', 'info');
                 
                 // First trigger a scan
                 await fetch('/api/wifi/scan', { method: 'POST' });
                 
-                // Wait longer for AP mode scan to complete (includes switching modes)
-                await new Promise(resolve => setTimeout(resolve, 8000));
+                // Wait for scan to complete (shorter wait for non-disruptive scanning)
+                await new Promise(resolve => setTimeout(resolve, 3000));
                 
                 // Get the networks
                 const response = await fetch('/api/wifi/networks');
                 const data = await response.json();
                 
-                networkSelect.innerHTML = '<option value="">Select a network...</option>';
+                networkSelect.innerHTML = '<option value="">Select from available networks...</option>';
                 
                 if (data.success && data.networks && data.networks.length > 0) {
+                    let hasRealNetworks = false;
+                    
                     data.networks.forEach(network => {
                         if (network.ssid && network.ssid.trim() !== '') {
                             const option = document.createElement('option');
                             option.value = network.ssid;
-                            const security = network.security || 'Open';
-                            const signal = network.signal || 0;
-                            option.textContent = `${network.ssid} (${security}, ${signal}%)`;
+                            
+                            // Handle instructional networks
+                            if (network.instruction) {
+                                option.disabled = true;
+                                option.style.fontStyle = 'italic';
+                                option.style.color = '#666';
+                                option.textContent = network.ssid;
+                            } else {
+                                hasRealNetworks = true;
+                                const security = network.security === 'Open' ? 'Open' : 'Secured';
+                                const signal = network.signal || 0;
+                                const knownText = network.known ? ' ⭐' : '';
+                                option.textContent = `${network.ssid} (${security}, ${signal}%)${knownText}`;
+                            }
+                            
                             networkSelect.appendChild(option);
                         }
                     });
-                    showStatus(`Found ${data.networks.length} networks. You can now connect to WiFi.`, 'success');
+                    
+                    if (hasRealNetworks) {
+                        showStatus(`Found ${data.networks.filter(n => !n.instruction).length} networks. Select one or enter manually below.`, 'success');
+                    } else {
+                        showStatus('No networks found via scan. Please enter the network name manually below.', 'info');
+                    }
                 } else {
-                    showStatus('No networks found. Try refreshing.', 'error');
+                    showStatus('No networks detected. Enter the WiFi network name manually below.', 'info');
                 }
             } catch (error) {
                 console.error('Error loading networks:', error);
-                showStatus('Error scanning for networks. Try again.', 'error');
-                networkSelect.innerHTML = '<option value="">Error loading networks</option>';
+                showStatus('Could not scan networks. Enter WiFi name manually below.', 'info');
+                networkSelect.innerHTML = '<option value="">Enter network name manually below</option>';
             } finally {
                 refreshBtn.disabled = false;
                 refreshBtn.textContent = '🔄';
@@ -328,11 +365,12 @@
         form.addEventListener('submit', (e) => {
             e.preventDefault();
             
-            const ssid = networkSelect.value;
+            // Get SSID from either dropdown or manual input
+            const ssid = networkSelect.value || manualSSID.value.trim();
             const password = passwordInput.value;
             
             if (!ssid) {
-                showStatus('Please select a WiFi network first.', 'error');
+                showStatus('Please select a network or enter a network name manually.', 'error');
                 return;
             }
             
@@ -347,8 +385,8 @@
             setTimeout(loadNetworks, 1000);
         });
 
-        // Auto-refresh every 30 seconds
-        setInterval(loadNetworks, 30000);
+        // Auto-refresh every 2 minutes (less frequent since scanning doesn't disrupt)
+        setInterval(loadNetworks, 120000);
     </script>
 </body>
 </html>

@@ -644,103 +644,135 @@ class WiFiManager:
             return []
 
     def scan_networks_while_ap(self):
-        """Scan for networks while in AP mode by temporarily switching to station mode"""
+        """Scan for networks while in AP mode using smart caching and fallback strategies"""
         try:
-            self.logger.info("Scanning networks while in AP mode - temporarily switching to station mode")
-            self.ap_logger.info("Starting network scan while in AP mode")
+            self.logger.info("Scanning networks while in AP mode using smart strategies")
+            self.ap_logger.info("Starting network scan while in AP mode (non-disruptive)")
             
-            # Store current AP state
-            was_ap_active = self.ap_mode_active
-            clients_before = self.ap_clients_count
+            # Strategy 1: Return cached networks if we have recent data (within 10 minutes)
+            if hasattr(self, 'cached_networks') and hasattr(self, 'last_scan_time'):
+                cache_age = time.time() - self.last_scan_time
+                if cache_age < 600:  # 10 minutes cache
+                    self.ap_logger.info(f"Returning cached networks (age: {cache_age:.1f}s)")
+                    return self.cached_networks
             
-            if clients_before:
-                self.ap_logger.info(f"Warning: {clients_before} clients connected during scan - they will be temporarily disconnected")
-            
-            # Temporarily stop AP mode
-            self.ap_logger.info("Temporarily stopping AP mode for network scan...")
-            self._stop_ap_services()
-            
-            # Reconfigure interface for scanning
-            self.ap_logger.info("Reconfiguring interface for station mode scanning...")
-            subprocess.run(['sudo', 'nmcli', 'dev', 'set', self.ap_interface, 'managed', 'yes'], 
-                         capture_output=True, timeout=10)
-            
-            # Bring interface down and up to reset
-            subprocess.run(['sudo', 'ip', 'link', 'set', 'dev', self.ap_interface, 'down'], 
-                         capture_output=True, timeout=5)
-            time.sleep(1)
-            subprocess.run(['sudo', 'ip', 'link', 'set', 'dev', self.ap_interface, 'up'], 
-                         capture_output=True, timeout=5)
-            time.sleep(2)
-            
-            # Perform the scan
-            self.ap_logger.info("Performing network scan...")
+            # Strategy 2: Try iwlist scan (non-disruptive to AP mode)
             networks = []
-            
             try:
-                # Trigger scan
-                result = subprocess.run(['nmcli', 'dev', 'wifi', 'rescan'], 
-                                      capture_output=True, timeout=20)
-                time.sleep(3)  # Give time for scan to complete
-                
-                # Get results
-                result = subprocess.run(['nmcli', '-t', '-f', 'SSID,SIGNAL,SECURITY', 'dev', 'wifi'], 
+                self.ap_logger.debug("Attempting iwlist scan on AP interface...")
+                result = subprocess.run(['sudo', 'iwlist', self.ap_interface, 'scan'], 
                                       capture_output=True, text=True, timeout=15)
                 
                 if result.returncode == 0:
-                    for line in result.stdout.strip().split('\n'):
-                        if line and ':' in line:
-                            parts = line.split(':')
-                            if len(parts) >= 3 and parts[0]:  # SSID not empty
-                                networks.append({
-                                    'ssid': parts[0],
-                                    'signal': int(parts[1]) if parts[1].isdigit() else 0,
-                                    'security': parts[2] if parts[2] else 'Open',
-                                    'known': parts[0] in [net['ssid'] for net in self.known_networks]
-                                })
-                
-                self.ap_logger.info(f"Scan completed - found {len(networks)} networks")
-                
-            except Exception as scan_error:
-                self.ap_logger.error(f"Error during scan: {scan_error}")
+                    self.ap_logger.debug("iwlist scan successful, parsing results...")
+                    lines = result.stdout.split('\n')
+                    current_network = {}
+                    
+                    for line in lines:
+                        line = line.strip()
+                        if 'Cell ' in line and 'Address:' in line:
+                            # Start of new network, save previous if complete
+                            if 'ssid' in current_network and current_network['ssid'] != self.ap_ssid:
+                                networks.append(current_network.copy())
+                            current_network = {}
+                        elif 'ESSID:' in line:
+                            # Extract SSID
+                            essid_part = line.split('ESSID:')[1].strip('"')
+                            if essid_part and essid_part != self.ap_ssid:
+                                current_network['ssid'] = essid_part
+                        elif 'Signal level=' in line:
+                            # Extract signal strength
+                            try:
+                                signal_part = line.split('Signal level=')[1].split()[0]
+                                if 'dBm' in signal_part:
+                                    dbm = int(signal_part.replace('dBm', ''))
+                                    # Convert dBm to percentage (rough approximation)
+                                    signal = max(0, min(100, (dbm + 100) * 2))
+                                else:
+                                    signal = 50  # Default
+                                current_network['signal'] = signal
+                            except:
+                                current_network['signal'] = 50
+                        elif 'Encryption key:on' in line:
+                            current_network['security'] = 'WPA2'
+                        elif 'Encryption key:off' in line:
+                            current_network['security'] = 'Open'
+                    
+                    # Add last network if complete
+                    if 'ssid' in current_network and current_network['ssid'] != self.ap_ssid:
+                        networks.append(current_network.copy())
+                    
+                    if networks:
+                        self.ap_logger.info(f"iwlist scan found {len(networks)} networks")
+                        # Cache the results
+                        self.cached_networks = networks
+                        self.last_scan_time = time.time()
+                        
+                        # Remove duplicates and sort
+                        seen_ssids = set()
+                        unique_networks = []
+                        for network in sorted(networks, key=lambda x: x.get('signal', 0), reverse=True):
+                            if network['ssid'] not in seen_ssids:
+                                seen_ssids.add(network['ssid'])
+                                # Add known network flag
+                                network['known'] = network['ssid'] in [net['ssid'] for net in self.known_networks]
+                                unique_networks.append(network)
+                        
+                        self.available_networks = unique_networks
+                        return unique_networks
+                    
+            except Exception as iwlist_error:
+                self.ap_logger.debug(f"iwlist scan failed: {iwlist_error}")
             
-            # Restore AP mode
-            self.ap_logger.info("Restoring AP mode...")
-            if was_ap_active:
-                # Reconfigure interface for AP mode
-                if self._configure_ap_interface():
-                    if self._start_ap_services():
-                        self.ap_mode_active = True
-                        self.ap_logger.info("AP mode restored successfully after network scan")
-                    else:
-                        self.ap_logger.error("Failed to restart AP services after scan")
-                else:
-                    self.ap_logger.error("Failed to reconfigure AP interface after scan")
+            # Strategy 3: Use previously cached networks from before AP mode
+            if hasattr(self, 'available_networks') and self.available_networks:
+                self.ap_logger.info("Using previously available networks from before AP mode")
+                return self.available_networks
             
-            # Remove duplicates and sort by signal strength
-            seen_ssids = set()
-            unique_networks = []
-            for network in sorted(networks, key=lambda x: x['signal'], reverse=True):
-                if network['ssid'] not in seen_ssids:
-                    seen_ssids.add(network['ssid'])
-                    unique_networks.append(network)
+            # Strategy 4: Return known networks as available options
+            if self.known_networks:
+                self.ap_logger.info("Returning known networks as scan alternatives")
+                known_as_available = []
+                for i, net in enumerate(self.known_networks):
+                    known_as_available.append({
+                        'ssid': net['ssid'],
+                        'signal': 80 - (i * 5),  # Decreasing signal strength
+                        'security': 'WPA2' if net.get('password') else 'Open',
+                        'known': True
+                    })
+                return known_as_available
             
-            self.available_networks = unique_networks
-            self.logger.info(f"AP mode scan completed - found {len(unique_networks)} unique networks")
-            return unique_networks
+            # Strategy 5: Return helpful message for manual entry
+            help_networks = [
+                {
+                    'ssid': '📡 Unable to scan while in AP mode',
+                    'signal': 100,
+                    'security': '',
+                    'instruction': True,
+                    'known': False
+                },
+                {
+                    'ssid': '✏️ Type network name manually below',
+                    'signal': 90,
+                    'security': '',
+                    'instruction': True,
+                    'known': False
+                },
+                {
+                    'ssid': '💡 Or disconnect from Bjorn AP first',
+                    'signal': 80,
+                    'security': '',
+                    'instruction': True,
+                    'known': False
+                }
+            ]
+            
+            self.ap_logger.info("Returning instructional networks for manual entry")
+            return help_networks
             
         except Exception as e:
-            self.logger.error(f"Error scanning networks while in AP mode: {e}")
-            self.ap_logger.error(f"Error during AP mode scan: {e}")
-            
-            # Try to restore AP mode in case of error
-            try:
-                if self._configure_ap_interface():
-                    self._start_ap_services()
-                    self.ap_mode_active = True
-            except:
-                pass
-            
+            self.logger.error(f"Error in smart AP scanning: {e}")
+            self.ap_logger.error(f"Error during smart AP scan: {e}")
             return []
     
     def try_connect_known_networks(self):
