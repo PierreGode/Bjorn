@@ -250,11 +250,14 @@
                 refreshBtn.disabled = true;
                 refreshBtn.textContent = '⏳';
                 
+                // Show warning about temporary disconnection
+                showStatus('Scanning for networks... You may be temporarily disconnected.', 'info');
+                
                 // First trigger a scan
                 await fetch('/api/wifi/scan', { method: 'POST' });
                 
-                // Wait a moment for scan to complete
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                // Wait longer for AP mode scan to complete (includes switching modes)
+                await new Promise(resolve => setTimeout(resolve, 8000));
                 
                 // Get the networks
                 const response = await fetch('/api/wifi/networks');
@@ -273,7 +276,7 @@
                             networkSelect.appendChild(option);
                         }
                     });
-                    showStatus(`Found ${data.networks.length} networks`, 'success');
+                    showStatus(`Found ${data.networks.length} networks. You can now connect to WiFi.`, 'success');
                 } else {
                     showStatus('No networks found. Try refreshing.', 'error');
                 }
